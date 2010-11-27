@@ -28,7 +28,8 @@ Some things I am experimenting with
 * Backbone.js wraps the attributes of the model into `model.attributes`. I don't. The attributes are
   just properties on the object
 
-
+* If [Harmony Proxies](http://wiki.ecmascript.org/doku.php?id=harmony:proxies) were cross browser, much of
+  the above points would be moot.
     
 
 Tutorial

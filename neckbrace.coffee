@@ -1,6 +1,9 @@
 # instead of __type, __parent. consider.__.type, .__.parent
 # or consider using and extra meta object like meta(o).type or meta[o.__uid].type
-
+# or even m(o).save() #with some closure acitons
+# but mayby save some.random.ob
+# where save = (o) -> o.__type.save o
+# todo: implement toJSON like backbone.js to get rid of __ properties.
 Neckbrace = window.Neckbrace = {}
 Neckbrace.emulateJSON = true
 Neckbrace.emulateHTTP = true
@@ -42,15 +45,26 @@ Neckbrace.Type =
     ret.super = this
     return ret
   before_save: (o) ->
-    return o
+    #get rid of all the meta information
+    ret = {}
+    for key,val of o
+      if _.s(key, 0, 2) isnt "__" and typeof val isnt "object"
+        ret[key] = val
+      else if typeof val is "object" and val.__type?.before_save?
+        if _.s(key, 0, 2) isnt "__" and val isnt o
+          console.log o, "is o; val is ", val
+          console.log "we have found", key, val
+          ret[key] = val.__type.before_save val
+    console.log "this is the one you are saving", ret
+    return ret
     #return an object that you want to save
   ajax: $.ajax
   get_url: (o) ->
     return "/#{this.plural}"
   is_new: (o) ->
     if o.id
-      return true
-    return false
+      return false
+    return true
   save: (o, options) ->
     method = if o.__type.is_new o then "create" else "update"
     o.__type.sync method, o, options.success, options.error
@@ -61,6 +75,7 @@ Neckbrace.Type =
     o.__type.sync "delete", o, options.success, options.error
   sync: (method, o, success, error) -> #copied from Backbone.sync
     if method in ['create', 'update']
+      console.log o.__type
       modelJSON = JSON.stringify o.__type.before_save o #could have said this.before_save o
     method_map =
       'create' : "POST"

@@ -1,5 +1,6 @@
 (function() {
   var Neckbrace;
+  var __hasProp = Object.prototype.hasOwnProperty;
   Neckbrace = (window.Neckbrace = {});
   Neckbrace.emulateJSON = true;
   Neckbrace.emulateHTTP = true;
@@ -51,7 +52,24 @@
       return ret;
     },
     before_save: function(o) {
-      return o;
+      var _ref, _ref2, key, ret, val;
+      ret = {};
+      _ref = o;
+      for (key in _ref) {
+        if (!__hasProp.call(_ref, key)) continue;
+        val = _ref[key];
+        if (_.s(key, 0, 2) !== "__" && typeof val !== "object") {
+          ret[key] = val;
+        } else if (typeof val === "object" && (typeof (_ref2 = val.__type == null ? undefined : val.__type.before_save) !== "undefined" && _ref2 !== null)) {
+          if (_.s(key, 0, 2) !== "__" && val !== o) {
+            console.log(o, "is o; val is ", val);
+            console.log("we have found", key, val);
+            ret[key] = val.__type.before_save(val);
+          }
+        }
+      }
+      console.log("this is the one you are saving", ret);
+      return ret;
     },
     ajax: $.ajax,
     get_url: function(o) {
@@ -59,9 +77,9 @@
     },
     is_new: function(o) {
       if (o.id) {
-        return true;
+        return false;
       }
-      return false;
+      return true;
     },
     save: function(o, options) {
       var method;
@@ -79,6 +97,7 @@
     sync: function(method, o, success, error) {
       var method_map, modelJSON, params, type;
       if (('create' === method || 'update' === method)) {
+        console.log(o.__type);
         modelJSON = JSON.stringify(o.__type.before_save(o));
       }
       method_map = {
