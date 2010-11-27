@@ -25,7 +25,7 @@ Some things I am experimenting with
   I may implement it the same way Backbone.js does in the future. If so I would 
   probably do `obj.__type.set param: value`
   
-* Backbone.js wraps the attributes of the model into `model.attributes`. I don't the attributes are
+* Backbone.js wraps the attributes of the model into `model.attributes`. I don't. The attributes are
   just properties on the object
 
 
