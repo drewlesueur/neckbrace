@@ -76,7 +76,7 @@
       return ("/" + (this.plural));
     },
     is_new: function(o) {
-      if (o.id) {
+      if (o.id || o._id) {
         return false;
       }
       return true;
@@ -86,7 +86,7 @@
       method = o.__type.is_new(o) ? "create" : "update";
       return o.__type.sync(method, o, options.success, options.error);
     },
-    fetch: function(o, options) {
+    fetch: function(options) {
       return this.sync("read", {
         __type: this
       }, options.success, options.error);

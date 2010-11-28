@@ -62,13 +62,13 @@ Neckbrace.Type =
   get_url: (o) ->
     return "/#{this.plural}"
   is_new: (o) ->
-    if o.id
+    if o.id or o._id
       return false
     return true
   save: (o, options) ->
     method = if o.__type.is_new o then "create" else "update"
     o.__type.sync method, o, options.success, options.error
-  fetch: (o, options) ->
+  fetch: (options) ->
     #todo: add more options
     this.sync "read", {__type: this}, options.success, options.error
   delete: (o, options) ->
