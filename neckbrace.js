@@ -22,7 +22,7 @@
   };
   Neckbrace.arr = function(a, options) {
     _.extend(a, options);
-    return obj(a);
+    return Neckbrace.obj(a);
   };
   Neckbrace.Type = {
     name: "DefaultType",
@@ -62,13 +62,10 @@
           ret[key] = val;
         } else if (typeof val === "object" && (typeof (_ref2 = val.__type == null ? undefined : val.__type.before_save) !== "undefined" && _ref2 !== null)) {
           if (_.s(key, 0, 2) !== "__" && val !== o) {
-            console.log(o, "is o; val is ", val);
-            console.log("we have found", key, val);
             ret[key] = val.__type.before_save(val);
           }
         }
       }
-      console.log("this is the one you are saving", ret);
       return ret;
     },
     ajax: $.ajax,
@@ -97,7 +94,6 @@
     sync: function(method, o, success, error) {
       var method_map, modelJSON, params, type;
       if (('create' === method || 'update' === method)) {
-        console.log(o.__type);
         modelJSON = JSON.stringify(o.__type.before_save(o));
       }
       method_map = {
@@ -136,6 +132,38 @@
         }
       }
       return o.__type.ajax(params);
+    },
+    set: function(o, vals) {
+      var _ref, _result, key, val;
+      _result = []; _ref = vals;
+      for (key in _ref) {
+        if (!__hasProp.call(_ref, key)) continue;
+        val = _ref[key];
+        _result.push(o[key] = val);
+      }
+      return _result;
+    },
+    add: function(o, x) {
+      if (!("_byId" in o)) {
+        o._byId = {};
+      }
+      if (!("_byUid" in o)) {
+        o._byUid = {};
+      }
+      o.push(x);
+      if ("id" in x) {
+        o._byId[x.id] = x;
+      } else if ("_id" in x) {
+        o._byId[x._id] = x;
+      }
+      return "__uid" in x ? (o._byUid[x.__uid] = x) : null;
+    },
+    getById: function(o, id) {
+      console.log(o, id);
+      return o._byId[id];
+    },
+    getByUid: function(o, uid) {
+      return o._byUid[uid];
     }
   };
 }).call(this);

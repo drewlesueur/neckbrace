@@ -3,7 +3,7 @@
 # or even m(o).save() #with some closure acitons
 # but mayby save some.random.ob
 # where save = (o) -> o.__type.save o
-# todo: implement toJSON like backbone.js to get rid of __ properties.
+# done: implement toJSON like backbone.js to get rid of __ properties. called before_save
 Neckbrace = window.Neckbrace = {}
 Neckbrace.emulateJSON = true
 Neckbrace.emulateHTTP = true
@@ -20,7 +20,7 @@ Neckbrace.obj = (o) ->
   return o
 Neckbrace.arr = (a, options) ->
   _.extend a, options
-  obj a
+  Neckbrace.obj a
 Neckbrace.Type = 
   name: "DefaultType"
   plural: "DefaultTypes"
@@ -52,10 +52,7 @@ Neckbrace.Type =
         ret[key] = val
       else if typeof val is "object" and val.__type?.before_save?
         if _.s(key, 0, 2) isnt "__" and val isnt o
-          console.log o, "is o; val is ", val
-          console.log "we have found", key, val
           ret[key] = val.__type.before_save val
-    console.log "this is the one you are saving", ret
     return ret
     #return an object that you want to save
   ajax: $.ajax
@@ -75,7 +72,6 @@ Neckbrace.Type =
     o.__type.sync "delete", o, options.success, options.error
   sync: (method, o, success, error) -> #copied from Backbone.sync
     if method in ['create', 'update']
-      console.log o.__type
       modelJSON = JSON.stringify o.__type.before_save o #could have said this.before_save o
     method_map =
       'create' : "POST"
@@ -103,4 +99,24 @@ Neckbrace.Type =
         params.beforeSend  = (xhr) ->
           xhr.setRequestHeader "X-HTTP-Method-Override", type
     o.__type.ajax params 
-
+  set: (o, vals) ->
+    for key, val of vals
+     o[key] = val
+  add: (o, x) ->
+    if not("_byId" of o)
+      o._byId = {}
+    if not("_byUid" of o)
+      o._byUid = {}
+    #this emulates backbone collections
+    o.push x
+    if "id" of x
+      o._byId[x.id] = x
+    else if "_id" of x
+      o._byId[x._id] = x
+    if "__uid" of x
+      o._byUid[x.__uid] = x
+  getById: (o, id) ->
+    console.log o, id
+    o._byId[id]
+  getByUid: (o, uid) ->
+    o._byUid[uid]
