@@ -1,7 +1,6 @@
 (function() {
   var Neckbrace;
-  var __hasProp = Object.prototype.hasOwnProperty;
-  Neckbrace = (window.Neckbrace = {});
+  Neckbrace = window.Neckbrace = {};
   Neckbrace.emulateJSON = true;
   Neckbrace.emulateHTTP = true;
   Neckbrace.id = 0;
@@ -9,161 +8,148 @@
     Neckbrace.id += 1;
     return Neckbrace.id;
   };
-  Neckbrace.obj = function(o) {
-    var _ref;
-    o.__uid = Neckbrace.get_id();
-    if (!(typeof (_ref = o.__type) !== "undefined" && _ref !== null)) {
-      o.__type = Neckbrace.Type;
+  NeckBrace.Type = function() {
+    Type.prototype.name = "DefaultType";
+    Type.prototype.plural = "DefaultTypes";
+    Type.prototype.element = "div";
+    Type.prototype.attributes = {};
+    Type.prototype.collection = [];
+    Type.prototype.appendingEl = function() {
+      return this.el;
+    };
+    function Type(params) {
+      _.extend(this.attributes, params);
+      this.initialize(params);
     }
-    if (o.__type.initialize) {
-      o.__type.initialize(o);
-    }
-    return o;
-  };
-  Neckbrace.arr = function(a, options) {
-    _.extend(a, options);
-    return Neckbrace.obj(a);
-  };
-  Neckbrace.Type = {
-    name: "DefaultType",
-    plural: "DefaultTypes",
-    element: "div",
-    appendingEl: function(o) {
-      return o.__el;
-    },
-    initialize: function(o) {
-      o.__type.append(o);
-      return o.__type.render(o);
-    },
-    append: function(o) {
-      o.__el = document.createElement(o.__type.element);
-      if (o.__class) {
-        $(o.__el).addClass(o.__class);
+    Type.prototype.initialize = function(params) {
+      this.append;
+      return this.render;
+    };
+    Type.prototype.append = function() {
+      this.el = document.createElement(this.element);
+      if (this["class"]) {
+        $(this.el).addClass(this["class"]);
       }
-      return o.__parent ? $(o.__parent.__type.appendingEl(o.__parent)).append(o.__el) : $(document.body).append(o.__el);
-    },
-    render: function(object) {
-      return $(object.__el).attr("data-neckbrace", "true");
-    },
-    copy: function(props) {
-      var ret;
-      ret = _.extend(_.clone(this), props);
-      ret["super"] = this;
-      return ret;
-    },
-    before_save: function(o) {
-      var _ref, _ref2, key, ret, val;
+      if (this.parent) {
+        return $(this.parent.appendingEl(this.parent)).append(this.el);
+      } else {
+        return $(document.body).append(this.el);
+      }
+    };
+    Type.prototype.render = function() {
+      return $(this.el).attr("data-neckbrace", "true");
+    };
+    Type.prototype.before_save = function() {
+      var key, ret, val, _ref;
       ret = {};
-      _ref = o;
+      _ref = this.attributes;
       for (key in _ref) {
-        if (!__hasProp.call(_ref, key)) continue;
         val = _ref[key];
         if (_.s(key, 0, 2) !== "__" && typeof val !== "object") {
           ret[key] = val;
-        } else if (typeof val === "object" && (typeof (_ref2 = val.__type == null ? undefined : val.__type.before_save) !== "undefined" && _ref2 !== null)) {
-          if (_.s(key, 0, 2) !== "__" && val !== o) {
-            ret[key] = val.__type.before_save(val);
+        } else if (typeof val === "object" && (val.before_save != null)) {
+          if (_.s(key, 0, 2) !== "__" && val !== this) {
+            ret[key] = this.before_save();
           }
         }
       }
       return ret;
-    },
-    ajax: $.ajax,
-    get_url: function(o) {
-      return ("/" + (this.plural));
-    },
-    is_new: function(o) {
-      if (o.id || o._id) {
+    };
+    Type.prototype.ajax = $.ajax;
+    Type.prototype.get_url = function() {
+      return "/" + this.plural;
+    };
+    Type.prototype.is_new = function() {
+      if (this.attributes.id || this.attributes._id) {
         return false;
       }
       return true;
-    },
-    save: function(o, options) {
+    };
+    Type.prototype.save = function(options) {
       var method;
-      method = o.__type.is_new(o) ? "create" : "update";
-      return o.__type.sync(method, o, options.success, options.error);
-    },
-    fetch: function(options) {
-      return this.sync("read", {
-        __type: this
-      }, options.success, options.error);
-    },
-    "delete": function(o, options) {
-      return o.__type.sync("delete", o, options.success, options.error);
-    },
-    sync: function(method, o, success, error) {
-      var method_map, modelJSON, params, type;
-      if (('create' === method || 'update' === method)) {
-        modelJSON = JSON.stringify(o.__type.before_save(o));
+      method = this.is_new() ? "create" : "update";
+      return Neckbrace.sync(method, this, options.success, options.error);
+    };
+    Type.prototype.fetch = function(options) {
+      return Neckbrace.sync("read", this, options.success, options.error);
+    };
+    Type.prototype["delete"] = function(options) {
+      return Neckbrace.sync("delete", this, options.success, options.error);
+    };
+    Type.prototype.set = function(vals) {
+      var key, val, _results;
+      _results = [];
+      for (key in vals) {
+        val = vals[key];
+        _results.push(this.attributes[key] = val);
       }
-      method_map = {
-        'create': "POST",
-        'update': 'PUT',
-        'delete': "DELETE",
-        'read': 'GET'
-      };
-      type = method_map[method];
-      params = {
-        url: this.get_url(o),
-        type: type,
-        contentType: 'application/json',
-        data: modelJSON,
-        dataType: 'json',
-        processData: false,
-        success: success,
-        error: error
-      };
-      if (Neckbrace.emulateJSON) {
-        params.contentType = 'application/x-www-form-urlencoded';
-        params.processData = true;
-        params.data = modelJSON ? {
-          model: modelJSON
-        } : {};
+      return _results;
+    };
+    Type.prototype.add = function(x) {
+      if (!("_byId" in this)) {
+        this._byId = {};
       }
-      if (Neckbrace.emulateHTTP) {
-        if (type === 'PUT' || type === 'DELETE') {
-          if (Neckbrace.emulateJSON) {
-            params.data._method = type;
-          }
-          params.type = 'POST';
-          params.beforeSend = function(xhr) {
-            return xhr.setRequestHeader("X-HTTP-Method-Override", type);
-          };
-        }
+      if (!("_byUid" in this)) {
+        this._byUid = {};
       }
-      return o.__type.ajax(params);
-    },
-    set: function(o, vals) {
-      var _ref, _result, key, val;
-      _result = []; _ref = vals;
-      for (key in _ref) {
-        if (!__hasProp.call(_ref, key)) continue;
-        val = _ref[key];
-        _result.push(o[key] = val);
-      }
-      return _result;
-    },
-    add: function(o, x) {
-      if (!("_byId" in o)) {
-        o._byId = {};
-      }
-      if (!("_byUid" in o)) {
-        o._byUid = {};
-      }
-      o.push(x);
+      this.collection.push(x);
       if ("id" in x) {
-        o._byId[x.id] = x;
+        this._byId[x.id] = x;
       } else if ("_id" in x) {
-        o._byId[x._id] = x;
+        this._byId[x._id] = x;
       }
-      return "__uid" in x ? (o._byUid[x.__uid] = x) : null;
-    },
-    getById: function(o, id) {
-      console.log(o, id);
-      return o._byId[id];
-    },
-    getByUid: function(o, uid) {
-      return o._byUid[uid];
+      if ("__uid" in x) {
+        return this._byUid[x.__uid] = x;
+      }
+    };
+    Type.prototype.getById = function(id) {
+      return this._byId[id];
+    };
+    Type.prototype.getByUid = function(uid) {
+      return this._byUid[uid];
+    };
+    return Type;
+  }();
+  Neckbrace.sync = function(method, o, success, error) {
+    var method_map, modelJSON, params, type;
+    if (method === 'create' || method === 'update') {
+      modelJSON = JSON.stringify(o.before_save());
     }
+    method_map = {
+      'create': "POST",
+      'update': 'PUT',
+      'delete': "DELETE",
+      'read': 'GET'
+    };
+    type = method_map[method];
+    params = {
+      url: o.get_url,
+      type: type,
+      contentType: 'application/json',
+      data: modelJSON,
+      dataType: 'json',
+      processData: false,
+      success: success,
+      error: error
+    };
+    if (Neckbrace.emulateJSON) {
+      params.contentType = 'application/x-www-form-urlencoded';
+      params.processData = true;
+      params.data = modelJSON ? {
+        model: modelJSON
+      } : {};
+    }
+    if (Neckbrace.emulateHTTP) {
+      if (type === 'PUT' || type === 'DELETE') {
+        if (Neckbrace.emulateJSON) {
+          params.data._method = type;
+        }
+        params.type = 'POST';
+        params.beforeSend = function(xhr) {
+          return xhr.setRequestHeader("X-HTTP-Method-Override", type);
+        };
+      }
+    }
+    return o.ajax(params);
   };
 }).call(this);
