@@ -8,7 +8,7 @@
     Neckbrace.id += 1;
     return Neckbrace.id;
   };
-  NeckBrace.Type = function() {
+  Neckbrace.Type = function() {
     Type.prototype.name = "DefaultType";
     Type.prototype.plural = "DefaultTypes";
     Type.prototype.element = "div";
@@ -22,8 +22,8 @@
       this.initialize(params);
     }
     Type.prototype.initialize = function(params) {
-      this.append;
-      return this.render;
+      this.append();
+      return this.render();
     };
     Type.prototype.append = function() {
       this.el = document.createElement(this.element);

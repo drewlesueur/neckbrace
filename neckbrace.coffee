@@ -6,7 +6,7 @@ Neckbrace.get_id = () ->
   Neckbrace.id += 1
   return Neckbrace.id
   
-class NeckBrace.Type
+class Neckbrace.Type
   name: "DefaultType"
   plural: "DefaultTypes"
   element: "div"
@@ -18,8 +18,8 @@ class NeckBrace.Type
     _.extend this.attributes, params
     this.initialize(params)
   initialize: (params) ->  
-    this.append
-    this.render
+    this.append()
+    this.render()
   append: () ->
     this.el = document.createElement this.element
     if this.class
