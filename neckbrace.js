@@ -9,67 +9,79 @@
     Neckbrace.id += 1;
     return Neckbrace.id;
   };
-  Neckbrace.Type = function(params) {
+  Neckbrace.Model = function(params) {
     _.extend(this.attributes, params);
     this.initialize(params);
     return this;
   };
-  Neckbrace.Type.prototype.name = "DefaultType";
-  Neckbrace.Type.prototype.plural = "DefaultTypes";
-  Neckbrace.Type.prototype.element = "div";
-  Neckbrace.Type.prototype.attributes = {};
-  Neckbrace.Type.prototype.collection = [];
-  Neckbrace.Type.prototype.appendingEl = function() {
+  Neckbrace.Model.prototype.element = "div";
+  Neckbrace.Model.prototype.attributes = {};
+  Neckbrace.Model.prototype.collection = [];
+  Neckbrace.Model.prototype.appendingEl = function() {
     return this.el;
   };
-  Neckbrace.Type.prototype.triggers = {
-    "add": function() {},
-    "change": function() {},
+  Neckbrace.Model.prototype.triggers = {
     "change:id": function() {
       return console.log(this.id + "was triggered");
     }
   };
-  Neckbrace.Type.prototype.initialize = function(params) {
+  Neckbrace.Model.prototype.initialize = function(params) {
     this.cid = Neckbrace.get_id();
     this.append();
     return this.render();
   };
-  Neckbrace.Type.prototype.append = function() {
+  Neckbrace.Model.prototype.append = function() {
     this.el = document.createElement(this.element);
     return this.parent ? $(this.parent.appendingEl()).append(this.el) : $(document.body).append(this.el);
   };
-  Neckbrace.Type.prototype.render = function() {
+  Neckbrace.Model.prototype.render = function() {
     return $(this.el).attr("data-neckbrace", "true");
   };
-  Neckbrace.Type.prototype.toJSON = function() {
+  Neckbrace.Model.prototype.toJSON = function() {
+    var _ref, key, ret, val;
     if (this.collection.length > 0) {
-      return reutrn(this.collection);
+      return this.map(function(model) {
+        return model.toJSON();
+      });
     } else {
-      return this.attributes;
+      ret = {};
+      _ref = this.attributes;
+      for (key in _ref) {
+        if (!__hasProp.call(_ref, key)) continue;
+        val = _ref[key];
+        if (typeof val !== "object") {
+          ret[key] = val;
+        } else if (typeof val === "object" && val.toJSON) {
+          if (val !== this) {
+            ret[key] = val.toJSON();
+          }
+        }
+      }
+      return ret;
     }
   };
-  Neckbrace.Type.prototype.ajax = $.ajax;
-  Neckbrace.Type.prototype.get_url = function() {
-    return ("/" + (this.plural));
+  Neckbrace.Model.prototype.ajax = $.ajax;
+  Neckbrace.Model.prototype.url = function() {
+    return "/neckbraces";
   };
-  Neckbrace.Type.prototype.is_new = function() {
+  Neckbrace.Model.prototype.isNew = function() {
     if (this.attributes.id || this.attributes._id) {
       return false;
     }
     return true;
   };
-  Neckbrace.Type.prototype.save = function(options) {
+  Neckbrace.Model.prototype.save = function(options) {
     var method;
-    method = this.is_new() ? "create" : "update";
+    method = this.isNew() ? "create" : "update";
     return Neckbrace.sync(method, this, options.success, options.error);
   };
-  Neckbrace.Type.prototype.fetch = function(options) {
+  Neckbrace.Model.prototype.fetch = function(options) {
     return Neckbrace.sync("read", this, options.success, options.error);
   };
-  Neckbrace.Type.prototype["delete"] = function(options) {
+  Neckbrace.Model.prototype["delete"] = function(options) {
     return Neckbrace.sync("delete", this, options.success, options.error);
   };
-  Neckbrace.Type.prototype.set = function(vals) {
+  Neckbrace.Model.prototype.set = function(vals) {
     var _ref, key, old, val;
     _ref = vals;
     for (key in _ref) {
@@ -83,10 +95,10 @@
     }
     return this.triggers["chage"] ? this.triggers["change"]() : null;
   };
-  Neckbrace.Type.prototype.get = function(val) {
+  Neckbrace.Model.prototype.get = function(val) {
     return this.attributes[val];
   };
-  Neckbrace.Type.prototype.add = function(x) {
+  Neckbrace.Model.prototype.add = function(x) {
     if (!("_byId" in this)) {
       this._byId = {};
     }
@@ -105,7 +117,7 @@
     x.parent = this;
     return this.triggers["add"] ? this.triggers["add"]() : null;
   };
-  Neckbrace.Type.prototype.remove = function(model) {
+  Neckbrace.Model.prototype.remove = function(model) {
     model = this.getByCid(model) || this.get(Model);
     if (!model) {
       return null;
@@ -116,15 +128,15 @@
     this.collection.splice(this.indexOf(model), 1);
     return this.triggers["remove"] ? this.triggers["remove"]() : null;
   };
-  Neckbrace.Type.prototype.getById = function(id) {
+  Neckbrace.Model.prototype.getById = function(id) {
     return this._byId[id];
   };
-  Neckbrace.Type.prototype.getByCid = function(cid) {
+  Neckbrace.Model.prototype.getByCid = function(cid) {
     return this._byCid[cid];
   };
   methods = ['forEach', 'each', 'map', 'reduce', 'reduceRight', 'find', 'detect', 'filter', 'select', 'reject', 'every', 'all', 'some', 'any', 'include', 'invoke', 'max', 'min', 'sortBy', 'sortedIndex', 'toArray', 'size', 'first', 'rest', 'last', 'without', 'indexOf', 'lastIndexOf', 'isEmpty'];
   _.each(methods, function(method) {
-    return (Neckbrace.Type.prototype[method] = function() {
+    return (Neckbrace.Model.prototype[method] = function() {
       return _[method].apply(_, [this.models].concat(_.toArray(arguments)));
     });
   });
@@ -141,7 +153,7 @@
     };
     type = method_map[method];
     params = {
-      url: o.get_url(),
+      url: _.isFunction(o.url) ? o.url() : o.url,
       type: type,
       contentType: 'application/json',
       data: modelJSON,
