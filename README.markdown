@@ -8,10 +8,11 @@ It gives some methods for helping you create JavaScript web applications.
 
 ## Diferences from backbone.js
 
-* One class for everything. A single class handles a model and a collectoin
+* One class for everything. A single class handles a model and a collection
 * There is no extra view. The `append`, and `render` methods of the model are essentially the view.
 `append` is for when the model is created--how it gets appended to the dom. `render` is usually for when the model is updated.
 * binding and trigger are per-class instead of per-object. You just have the `triggers` property on
   the class. It is just an hash of the triggers. You don't have to manually bind.
+* Models can be fully nested. This can be helpful for storing to a mongodb backend.
 
 Still working out kinks

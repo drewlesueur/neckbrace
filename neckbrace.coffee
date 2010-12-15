@@ -5,9 +5,7 @@ Neckbrace.id = 0
 Neckbrace.get_id = () ->
   Neckbrace.id += 1
   return Neckbrace.id
-class Neckbrace.Type
-  name: "DefaultType"
-  plural: "DefaultTypes"
+class Neckbrace.Model
   element: "div"
   attributes: {}
   collection: []
@@ -17,9 +15,7 @@ class Neckbrace.Type
     _.extend this.attributes, params
     this.initialize(params)
   triggers:
-    "add": () ->
-    "change" : () ->
-    "change:id": () ->
+    "change:id": () -> #"add", "change", "remove"
       console.log this.id + "was triggered"
   initialize: (params) ->  
     this.cid = Neckbrace.get_id()
@@ -33,21 +29,28 @@ class Neckbrace.Type
       $(document.body).append this.el
   render: () ->
     $(this.el).attr "data-neckbrace", "true"
-  toJSON: () ->
+    #$(this.el).bind("click", () -> )
+  toJSON: () -> #todo: make sure nesting works
     if this.collection.length > 0
-      reutrn this.collection
+      return this.map (model) ->
+        model.toJSON()
     else
-      return this.attributes
-    #return an object that you want to save
+      ret = {}
+      for key, val of this.attributes
+        if typeof val isnt "object"
+          ret[key] = val
+        else if typeof val is "object" and val.toJSON
+          if val isnt this
+            ret[key] = val.toJSON()
+      ret
   ajax: $.ajax
-  get_url: () ->
-    return "/#{this.plural}"
-  is_new: () ->
+  url: () -> "/neckbraces"
+  isNew: () ->
     if this.attributes.id or this.attributes._id #also this.id or this._id
       return false
     return true
   save: (options) ->
-    method = if this.is_new() then "create" else "update"
+    method = if this.isNew() then "create" else "update"
     Neckbrace.sync method, this, options.success, options.error
   fetch: (options) ->
     #todo: add more options, fetch single or fetch many
@@ -100,7 +103,7 @@ methods = ['forEach', 'each', 'map', 'reduce', 'reduceRight', 'find', 'detect',
 'invoke', 'max', 'min', 'sortBy', 'sortedIndex', 'toArray', 'size',
 'first', 'rest', 'last', 'without', 'indexOf', 'lastIndexOf', 'isEmpty']
 _.each methods, (method) ->
-  Neckbrace.Type.prototype[method] = () ->
+  Neckbrace.Model.prototype[method] = () ->
     return _[method].apply _, [this.models].concat(_.toArray(arguments))
  
 Neckbrace.sync = (method, o, success, error) -> #copied from Backbone.sync
@@ -113,7 +116,7 @@ Neckbrace.sync = (method, o, success, error) -> #copied from Backbone.sync
     'read' : 'GET'
   type = method_map[method]
   params =
-    url: o.get_url()
+    url: if _.isFunction(o.url) then o.url() else o.url
     type: type
     contentType: 'application/json'
     data: modelJSON
