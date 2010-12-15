@@ -5,7 +5,6 @@ Neckbrace.id = 0
 Neckbrace.get_id = () ->
   Neckbrace.id += 1
   return Neckbrace.id
-  
 class Neckbrace.Type
   name: "DefaultType"
   plural: "DefaultTypes"
@@ -17,29 +16,28 @@ class Neckbrace.Type
   constructor: (params) ->
     _.extend this.attributes, params
     this.initialize(params)
+  triggers:
+    "add": () ->
+    "change" : () ->
+    "change:id": () ->
+      console.log this.id + "was triggered"
   initialize: (params) ->  
+    this.cid = Neckbrace.get_id()
     this.append()
     this.render()
   append: () ->
     this.el = document.createElement this.element
-    if this.class
-      $(this.el).addClass this.class
     if this.parent
-      $(this.parent.appendingEl this.parent).append this.el
+      $(this.parent.appendingEl()).append this.el
     else
       $(document.body).append this.el
   render: () ->
     $(this.el).attr "data-neckbrace", "true"
-  before_save: () ->
-    #get rid of all the meta information
-    ret = {}
-    for key,val of this.attributes
-      if _.s(key, 0, 2) isnt "__" and typeof val isnt "object"
-        ret[key] = val
-      else if typeof val is "object" and val.before_save?
-        if _.s(key, 0, 2) isnt "__" and val isnt this
-          ret[key] = this.before_save()
-    return ret
+  toJSON: () ->
+    if this.collection.length > 0
+      reutrn this.collection
+    else
+      return this.attributes
     #return an object that you want to save
   ajax: $.ajax
   get_url: () ->
@@ -52,13 +50,20 @@ class Neckbrace.Type
     method = if this.is_new() then "create" else "update"
     Neckbrace.sync method, this, options.success, options.error
   fetch: (options) ->
-    #todo: add more options
+    #todo: add more options, fetch single or fetch many
     Neckbrace.sync "read", this, options.success, options.error
   delete: (options) ->
     Neckbrace.sync "delete", this, options.success, options.error
   set: (vals) ->
     for key, val of vals
-     this.attributes[key] = val
+      old = this.attributes[key]
+      this.attributes[key] = val
+      if this.triggers["change:#{val}"]
+       this.triggers["change:#{val}"](old)
+    if this.triggers["chage"]
+      this.triggers["change"]()
+  get: (val) ->
+    return this.attributes[val]
   add: (x) ->
     if not("_byId" of this)
       this._byId = {}
@@ -66,20 +71,41 @@ class Neckbrace.Type
       this._byUid = {}
     #this emulates backbone collections
     this.collection.push x
-    if "id" of x
-      this._byId[x.id] = x
-    else if "_id" of x
-      this._byId[x._id] = x
-    if "__uid" of x
-      this._byUid[x.__uid] = x
+    if "id" of x.attributes
+      this._byId[x.attributes.id] = x
+    else if "_id" of x.attributes
+      this._byId[x.attributes._id] = x
+    if "cid" of x
+      this._byCid[x.cid] = x
+    x.parent = this
+    if this.triggers["add"]
+      this.triggers["add"]()
+  remove: (model) ->
+    model = this.getByCid(model) || this.get(Model)
+    if not model then return null
+    delete this._byId[model.attributes.id]
+    delete this._byCid[model.cid]
+    delete model.parent #backbone says model.collection
+    this.collection.splice this.indexOf(model), 1
+    if this.triggers["remove"]
+      this.triggers["remove"]()
   getById: (id) ->
     this._byId[id]
-  getByUid: (uid) ->
-    this._byUid[uid]
-
+  getByCid: (cid) ->
+    this._byCid[cid]
+    
+#giving neckbrace.type the underscore methods
+methods = ['forEach', 'each', 'map', 'reduce', 'reduceRight', 'find', 'detect',
+'filter', 'select', 'reject', 'every', 'all', 'some', 'any', 'include',
+'invoke', 'max', 'min', 'sortBy', 'sortedIndex', 'toArray', 'size',
+'first', 'rest', 'last', 'without', 'indexOf', 'lastIndexOf', 'isEmpty']
+_.each methods, (method) ->
+  Neckbrace.Type.prototype[method] = () ->
+    return _[method].apply _, [this.models].concat(_.toArray(arguments))
+ 
 Neckbrace.sync = (method, o, success, error) -> #copied from Backbone.sync
   if method in ['create', 'update']
-    modelJSON = JSON.stringify o.before_save()
+    modelJSON = JSON.stringify o.toJSON()
   method_map =
     'create' : "POST"
     'update' : 'PUT'
@@ -87,7 +113,7 @@ Neckbrace.sync = (method, o, success, error) -> #copied from Backbone.sync
     'read' : 'GET'
   type = method_map[method]
   params =
-    url: o.get_url
+    url: o.get_url()
     type: type
     contentType: 'application/json'
     data: modelJSON
