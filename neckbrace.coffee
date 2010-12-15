@@ -1,3 +1,5 @@
+#I combine Model and Collection
+# maybe I will split them up
 Neckbrace = window.Neckbrace = {};
 Neckbrace.emulateJSON = true
 Neckbrace.emulateHTTP = true
@@ -11,16 +13,19 @@ class Neckbrace.Model
   collection: []
   appendingEl: () ->
     return this.el
-  constructor: (params) ->
+  constructor: (params, options) ->
     _.extend this.attributes, params
+    if options && "parent" of options
+      this.parent = options.parent
     this.initialize(params)
   triggers:
-    "change:id": () -> #"add", "change", "remove"
-      console.log this.id + "was triggered"
-  initialize: (params) ->  
+      "change:id": () -> #"add", "change", "remove"
+        console.log this.id + "was triggered"
+  initialize: (params) ->
     this.cid = Neckbrace.get_id()
     this.append()
     this.render()
+    
   append: () ->
     this.el = document.createElement this.element
     if this.parent
@@ -61,10 +66,10 @@ class Neckbrace.Model
     for key, val of vals
       old = this.attributes[key]
       this.attributes[key] = val
-      if this.triggers["change:#{val}"]
-       this.triggers["change:#{val}"](old)
+      if this.triggers["change:#{key}"]
+       this.triggers["change:#{key}"].apply(this, [old])
     if this.triggers["chage"]
-      this.triggers["change"]()
+      this.triggers["change"].apply(this)
   get: (val) ->
     return this.attributes[val]
   add: (x) ->
@@ -82,7 +87,7 @@ class Neckbrace.Model
       this._byCid[x.cid] = x
     x.parent = this
     if this.triggers["add"]
-      this.triggers["add"]()
+      this.triggers["add"].apply(this)
   remove: (model) ->
     model = this.getByCid(model) || this.get(Model)
     if not model then return null
@@ -91,12 +96,11 @@ class Neckbrace.Model
     delete model.parent #backbone says model.collection
     this.collection.splice this.indexOf(model), 1
     if this.triggers["remove"]
-      this.triggers["remove"]()
+      this.triggers["remove"].apply(this)
   getById: (id) ->
     this._byId[id]
   getByCid: (cid) ->
     this._byCid[cid]
-    
 #giving neckbrace.type the underscore methods
 methods = ['forEach', 'each', 'map', 'reduce', 'reduceRight', 'find', 'detect',
 'filter', 'select', 'reject', 'every', 'all', 'some', 'any', 'include',
@@ -105,7 +109,6 @@ methods = ['forEach', 'each', 'map', 'reduce', 'reduceRight', 'find', 'detect',
 _.each methods, (method) ->
   Neckbrace.Model.prototype[method] = () ->
     return _[method].apply _, [this.models].concat(_.toArray(arguments))
- 
 Neckbrace.sync = (method, o, success, error) -> #copied from Backbone.sync
   if method in ['create', 'update']
     modelJSON = JSON.stringify o.toJSON()
