@@ -1,5 +1,10 @@
 #I combine Model and Collection
 # maybe I will split them up
+# people.phones[0].extension
+# people.attributes.phones.collection[0].extension
+# I am going to get rid of the nested attributes
+# the attributes are going to be right on the object!!
+#listing._.save()
 Neckbrace = window.Neckbrace = {};
 Neckbrace.emulateJSON = true
 Neckbrace.emulateHTTP = true
@@ -7,14 +12,14 @@ Neckbrace.id = 0
 Neckbrace.get_id = () ->
   Neckbrace.id += 1
   return Neckbrace.id
+
 class Neckbrace.Model
+  length: 0
   element: "div"
-  attributes: {}
-  collection: []
   appendingEl: () ->
     return this.el
   constructor: (params, options) ->
-    _.extend this.attributes, params
+    _.extend this, params
     if options && "parent" of options
       this.parent = options.parent
     this.initialize(params)
@@ -25,7 +30,6 @@ class Neckbrace.Model
     this.cid = Neckbrace.get_id()
     this.append()
     this.render()
-    
   append: () ->
     this.el = document.createElement this.element
     if this.parent
@@ -36,12 +40,12 @@ class Neckbrace.Model
     $(this.el).attr "data-neckbrace", "true"
     #$(this.el).bind("click", () -> )
   toJSON: () -> #todo: make sure nesting works
-    if this.collection.length > 0
+    if this.length > 0
       return this.map (model) ->
         model.toJSON()
     else
       ret = {}
-      for key, val of this.attributes
+      for key, val of this
         if typeof val isnt "object"
           ret[key] = val
         else if typeof val is "object" and val.toJSON
@@ -51,7 +55,7 @@ class Neckbrace.Model
   ajax: $.ajax
   url: () -> "/neckbraces"
   isNew: () ->
-    if this.attributes.id or this.attributes._id #also this.id or this._id
+    if this.id or this._id #also this.id or this._id
       return false
     return true
   save: (options) ->
@@ -64,14 +68,14 @@ class Neckbrace.Model
     Neckbrace.sync "delete", this, options.success, options.error
   set: (vals) ->
     for key, val of vals
-      old = this.attributes[key]
-      this.attributes[key] = val
+      old = this[key]
+      this[key] = val
       if this.triggers["change:#{key}"]
        this.triggers["change:#{key}"].apply(this, [old])
     if this.triggers["chage"]
       this.triggers["change"].apply(this)
   get: (val) ->
-    return this.attributes[val]
+    return this[val]
   add: (x) ->
     if not("_byId" of this)
       this._byId = {}
@@ -79,10 +83,11 @@ class Neckbrace.Model
       this._byUid = {}
     #this emulates backbone collections
     this.collection.push x
-    if "id" of x.attributes
-      this._byId[x.attributes.id] = x
-    else if "_id" of x.attributes
-      this._byId[x.attributes._id] = x
+    this.length++
+    if "id" of x
+      this._byId[x.id] = x
+    else if "_id" of x
+      this._byId[x._id] = x
     if "cid" of x
       this._byCid[x.cid] = x
     x.parent = this
@@ -91,10 +96,11 @@ class Neckbrace.Model
   remove: (model) ->
     model = this.getByCid(model) || this.get(Model)
     if not model then return null
-    delete this._byId[model.attributes.id]
+    delete this._byId[model.id]
     delete this._byCid[model.cid]
     delete model.parent #backbone says model.collection
     this.collection.splice this.indexOf(model), 1
+    this.length--
     if this.triggers["remove"]
       this.triggers["remove"].apply(this)
   getById: (id) ->

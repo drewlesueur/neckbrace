@@ -9,14 +9,13 @@
     return Neckbrace.id;
   };
   Neckbrace.Model = function() {
+    Model.prototype.length = 0;
     Model.prototype.element = "div";
-    Model.prototype.attributes = {};
-    Model.prototype.collection = [];
     Model.prototype.appendingEl = function() {
       return this.el;
     };
     function Model(params, options) {
-      _.extend(this.attributes, params);
+      _.extend(this, params);
       if (options && "parent" in options) {
         this.parent = options.parent;
       }
@@ -44,16 +43,15 @@
       return $(this.el).attr("data-neckbrace", "true");
     };
     Model.prototype.toJSON = function() {
-      var key, ret, val, _ref;
-      if (this.collection.length > 0) {
+      var key, ret, val;
+      if (this.length > 0) {
         return this.map(function(model) {
           return model.toJSON();
         });
       } else {
         ret = {};
-        _ref = this.attributes;
-        for (key in _ref) {
-          val = _ref[key];
+        for (key in this) {
+          val = this[key];
           if (typeof val !== "object") {
             ret[key] = val;
           } else if (typeof val === "object" && val.toJSON) {
@@ -70,7 +68,7 @@
       return "/neckbraces";
     };
     Model.prototype.isNew = function() {
-      if (this.attributes.id || this.attributes._id) {
+      if (this.id || this._id) {
         return false;
       }
       return true;
@@ -90,8 +88,8 @@
       var key, old, val;
       for (key in vals) {
         val = vals[key];
-        old = this.attributes[key];
-        this.attributes[key] = val;
+        old = this[key];
+        this[key] = val;
         if (this.triggers["change:" + key]) {
           this.triggers["change:" + key].apply(this, [old]);
         }
@@ -101,7 +99,7 @@
       }
     };
     Model.prototype.get = function(val) {
-      return this.attributes[val];
+      return this[val];
     };
     Model.prototype.add = function(x) {
       if (!("_byId" in this)) {
@@ -111,10 +109,11 @@
         this._byUid = {};
       }
       this.collection.push(x);
-      if ("id" in x.attributes) {
-        this._byId[x.attributes.id] = x;
-      } else if ("_id" in x.attributes) {
-        this._byId[x.attributes._id] = x;
+      this.length++;
+      if ("id" in x) {
+        this._byId[x.id] = x;
+      } else if ("_id" in x) {
+        this._byId[x._id] = x;
       }
       if ("cid" in x) {
         this._byCid[x.cid] = x;
@@ -129,10 +128,11 @@
       if (!model) {
         return null;
       }
-      delete this._byId[model.attributes.id];
+      delete this._byId[model.id];
       delete this._byCid[model.cid];
       delete model.parent;
       this.collection.splice(this.indexOf(model), 1);
+      this.length--;
       if (this.triggers["remove"]) {
         return this.triggers["remove"].apply(this);
       }
