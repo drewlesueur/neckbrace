@@ -8,11 +8,18 @@ It gives some methods for helping you create JavaScript web applications.
 
 ## Diferences from backbone.js
 
-* One class for everything. A single class handles a model and a collection
-* There is no extra view. The `append`, and `render` methods of the model are essentially the view.
-`append` is for when the model is created--how it gets appended to the dom. `render` is usually for when the model is updated.
-* binding and trigger are per-class instead of per-object. You just have the `triggers` property on
-  the class. It is just an hash of the triggers. You don't have to manually bind.
-* Models can be fully nested. This can be helpful for storing to a mongodb backend.
+* The main difference is Neckbrace uses real javascript objects and arrays, not nested ones
+* Functions are called based off the __cid of the object or array.
+* neckbrace models have meta elements like `_m(obj).el`
+* call polymorphic functions like `_t(obj).myfunction()`
+this will look up the type of the meta object of `obj` (like `_m(ojb).type.myFunction o`)
+* Copied this way of doing oop from Underscore.js
 
 Still working out kinks
+
+##Thoughts.
+    people.phones[0].extension
+    peopele.get("phones").get(1).get("extension")
+    people.attributes.phones.collection[0].extension
+    listing._.save()
+    _t(record).save()

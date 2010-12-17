@@ -1,9 +1,6 @@
 (function() {
-  var Neckbrace, makeLikeUnderscore, _m, _nb, _t;
+  var makeLikeUnderscore, _m, _nb, _t;
   var __slice = Array.prototype.slice;
-  Neckbrace = window.Neckbrace = {};
-  Neckbrace.emulateJSON = true;
-  Neckbrace.emulateHTTP = true;
   makeLikeUnderscore = function() {
     var _nb;
     _nb = function(o) {
@@ -31,9 +28,24 @@
     return _nb;
   };
   _nb = window._nb = makeLikeUnderscore();
+  _nb.emulateJSON = _nb.emulateHTTP = true;
+  _nb = window._nb = makeLikeUnderscore();
   _nb.currentUniqueId = 0;
   _nb.metaInfo = {};
   _nb.mixin({
+    extend: function(model, params) {
+      var ret;
+      ret = _.clone(model);
+      _.extend(ret, params);
+      ret["super"] = model;
+      return ret;
+    },
+    extendModel: function(params) {
+      return _.extend(_nb.Model, params);
+    },
+    extendCollection: function(params) {
+      return _.extend(_nb.Collection, params);
+    },
     uniqueId: function() {
       return _nb.currentUniqueId += 1;
     },
@@ -59,11 +71,6 @@
       var meta;
       meta = _nb.metaInfo[o.__cid];
       return meta;
-    },
-    save: function() {
-      var args, o;
-      o = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-      return (_ref = _nb.meta(o).type).save.apply(_ref, [o].concat(__slice.call(args)));
     }
   });
   _m = window._m = function(o) {
@@ -86,34 +93,46 @@
     }
     return _t.mixin(mixins);
   };
+  _t.addProps = function(propNames) {
+    var mixins, _fn, _i, _len;
+    mixins = {};
+    _fn = function(name) {
+      return mixins[name] = function(o) {
+        return _m(o).type[name];
+      };
+    };
+    for (_i = 0, _len = propNames.length; _i < _len; _i++) {
+      name = propNames[_i];
+      _fn(name);
+    }
+    return _t.mixin(mixins);
+  };
   _t.addMethods(["save", "initialize", "append", "render", "add", "remove", "fetch", "getById", "getByCid", "toJSON", "set", "isNew", "appendingEl", "url"]);
-  Neckbrace.Model = {
+  _t.addProps(["triggers"]);
+  _nb.Model = {
     appendingEl: function(o) {
       return _m(o).el;
     },
     initialize: function(o, params) {
-      _(o).meta({
-        "cid": _.uniqueId()
-      });
-      _m(o).element = "div";
-      _.append(o);
-      return _.render(o);
+      var mo;
+      mo = _m(o);
+      mo.cid = _.uniqueId();
+      mo.element = "div";
+      return _.append(o && _.render(o));
     },
     append: function(o) {
-      var appendingEl;
-      if (!(_m(o).el)) {
-        _m(o).el = document.createElement(_nb(o).meta.element);
+      var mo;
+      mo = _m(o);
+      if (!mo.el) {
+        mo.el = document.createElement(mo.element);
       }
-      if (_m(o).parent) {
-        appendingEl = _.appendingEl(_m(o).parent);
-        return $(appendingEl).append(_m(o).el);
+      if (mo.parent) {
+        return $(_t(mo.parent).appendingEl()).append(mo.el);
       } else {
-        return $(document.body).append(_m(o).el);
+        return $(document.body).append(mo.el);
       }
     },
-    render: function(o) {
-      return $(_m(o).el).attr("data-neckbrace", "true");
-    },
+    render: function(o) {},
     toJSON: function(o) {
       return o;
     },
@@ -122,46 +141,41 @@
       return "/neckbraces";
     },
     isNew: function(o) {
-      if (o.id || o._id) {
-        return false;
-      }
-      return true;
+      return o.id || o._id;
     },
     save: function(o, options) {
       var method;
       method = _t(o).isNew() ? "create" : "update";
-      return Neckbrace.sync(method, this, options.success, options.error);
+      return _nb.sync(method, this, options.success, options.error);
     },
     fetch: function(o, options) {
-      return Neckbrace.sync("read", o, options.success, options.error);
+      return _nb.sync("read", o, options.success, options.error);
     },
     "delete": function(o, options) {
-      return Neckbrace.sync("delete", o, options.success, options.error);
+      return _nb.sync("delete", o, options.success, options.error);
     },
     set: function(o, vals) {
-      var key, mo, old, val;
-      mo = _m(o);
+      var key, mo, old, tp, val;
+      mo = _m(o) && (tp = mo.type);
       for (key in vals) {
         val = vals[key];
-        old = o[key];
-        o[key] = val;
-        if (_m(o).triggers["change:" + key]) {
-          mo.triggers["change:" + key].apply(o, [old]);
+        old = o[key] && (o[key] = val);
+        if (tp.triggers["change:" + key]) {
+          tp.triggers["change:" + key].apply(o, [old]);
         }
       }
-      if (mo.triggers["chage"]) {
-        return mo.triggers["change"].apply(o);
+      if (tp.triggers["chage"]) {
+        return tp.triggers["change"].apply(o);
       }
     },
     get: function(o, val) {
       return o[val];
     }
   };
-  Neckbrace.Collection = _.clone(Neckbrace.Model);
-  _.extend(Neckbrace.Collection, {
+  _nb.Collection = _nb.extendModel({
     add: function(o, adding) {
-      var mo;
-      mo = _m(o);
+      var mo, tp;
+      mo = _m(o) && (tp = mo.type);
       if (!("_byId" in mo)) {
         mo._byId = {};
       }
@@ -178,13 +192,13 @@
         mo._byCid[adding.cid] = adding;
       }
       _m(adding).parent = o;
-      if (mo.triggers["add"]) {
-        return mo.triggers["add"].apply(o);
+      if (tp.triggers["add"]) {
+        return tp.triggers["add"].apply(o);
       }
     },
     remove: function(model) {
-      var _mo;
-      _mo = _m(o);
+      var mo, tp;
+      mo = _m(o) && (tp = mo.type);
       model = mo.getByCid(model) || mo.get(model);
       if (!model) {
         return null;
@@ -193,8 +207,8 @@
       delete mo._byCid[model.cid];
       delete model.parent;
       o.splice(_.indexOf(o, model), 1);
-      if (mo.triggers["remove"]) {
-        return mo.triggers["remove"].apply(this);
+      if (tp.triggers["remove"]) {
+        return tp.triggers["remove"].apply(this);
       }
     },
     getById: function(o, id) {
@@ -204,7 +218,7 @@
       return _m(o)._byCid[cid];
     }
   });
-  Neckbrace.sync = function(method, o, success, error) {
+  _nb.sync = function(method, o, success, error) {
     var method_map, mo, modelJSON, params, type;
     mo = _m(o);
     if (method === 'create' || method === 'update') {
@@ -227,16 +241,16 @@
       success: success,
       error: error
     };
-    if (Neckbrace.emulateJSON) {
+    if (_nb.emulateJSON) {
       params.contentType = 'application/x-www-form-urlencoded';
       params.processData = true;
       params.data = modelJSON ? {
         model: modelJSON
       } : {};
     }
-    if (Neckbrace.emulateHTTP) {
+    if (_nb.emulateHTTP) {
       if (type === 'PUT' || type === 'DELETE') {
-        if (Neckbrace.emulateJSON) {
+        if (_nb.emulateJSON) {
           params.data._method = type;
         }
         params.type = 'POST';
