@@ -10,10 +10,11 @@ makeLikeUnderscore = () ->
   _u = (o) ->
     _u.currentObject = o
     return _u.methods
+  _u.methods = {}
   _u.mixin = (funcs) ->
     for name, func of funcs
       _u[name] = func 
-      _u.methods = (args...) ->
+      _u.methods[name] = (args...) ->
         func(_u.currentObject, args...)
   return _u
 _u = window._u = makeLikeUnderscore()
@@ -30,6 +31,7 @@ _u.mixin
     _.extend metaO, extra
     if metaO.type and metaO.type.initialize
       _u(o).initialize()
+    o
   metaType: (type, o) ->
     _u.metaObj o, {type: type}
   meta: (o) ->
@@ -37,7 +39,7 @@ _u.mixin
     return meta
   save: (o, args...) ->
     _u.meta(o).type.save o, args...
-_m = window._m = (o) -> _m(o).meta()
+_m = window._m = (o) -> _u(o).meta()
 
 #t is for types
 _t = window._t = makeLikeUnderscore()
@@ -46,7 +48,7 @@ _t.addMethods = (methodNames) ->
   for name in methodNames
     mixins[name] = (o, args...) ->
       _m(o).type[name] o, args...
-    
+  _t.mixin mixins  
 _t.addMethods ["save", "initialize", "append", "render", "add", "remove", "fetch"
 "getById", "getByCid", "toJSON", "set", "isNew", "appendingEl", "url"]
 #metaMethods = ["save", "initialize", "append", "render", "add", "remove", "fetch"
