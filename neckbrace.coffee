@@ -69,15 +69,18 @@ _nb.Model =
   fetch: (o, options) -> _nb.sync "read", o, options.success, options.error #todo add more hre
   delete: (o, options) -> _nb.sync "delete", o, options.success, options.error
   set: (o, vals) ->
-    mo = _m(o) and tp = mo.type
+    mo = _m(o)
+    tp = mo.type
     for key, val of vals
-      old = o[key] and o[key] = val
-      if tp.triggers["change:#{key}"] then tp.triggers["change:#{key}"].apply(o, [old])
-    if tp.triggers["chage"] then tp.triggers["change"].apply(o)
+      old = o[key]
+      o[key] = val
+      if tp.triggers["change:#{key}"] then tp.triggers["change:#{key}"](o, [old])
+    if tp.triggers["chage"] then tp.triggers["change"](o)
   get: (o, val) -> return o[val]
 _nb.Collection = _nb.extendModel
   add: (o, adding) ->
-    mo = _m(o) and tp = mo.type
+    mo = _m(o)
+    tp = mo.type
     if not("_byId" of mo) then mo._byId = {}
     if not("_byUid" of mo) then mo._byUid = {}
     #this emulates backbone collections
@@ -85,16 +88,17 @@ _nb.Collection = _nb.extendModel
     if "id" of adding then mo._byId[adding.id] = adding else if "_id" of adding then mo._byId[adding._id] = adding
     if "cid" of adding then mo._byCid[adding.cid] = adding
     _m(adding).parent = o
-    if tp.triggers["add"] then tp.triggers["add"].apply(o)
-  remove: (model) ->
-    mo = _m(o) and tp = mo.type
+    if tp.triggers["add"] then tp.triggers["add"](o)
+  remove: (o, model) ->
+    mo = _m(o)
+    tp = mo.type
     model = mo.getByCid(model) || mo.get(model)
     if not model then return null
     delete mo._byId[model.id]
     delete mo._byCid[model.cid]
     delete model.parent #backbone says model.collection
     o.splice _.indexOf(o, model), 1
-    if tp.triggers["remove"] then tp.triggers["remove"].apply(this)
+    if tp.triggers["remove"] then tp.triggers["remove"](o)
   getById: (o, id) -> _m(o)._byId[id]
   getByCid: (o, cid) -> _m(o)._byCid[cid]
 _nb.sync = (method, o, success, error) -> #copied from Backbone.sync

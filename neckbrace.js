@@ -160,16 +160,18 @@
     },
     set: function(o, vals) {
       var key, mo, old, tp, val;
-      mo = _m(o) && (tp = mo.type);
+      mo = _m(o);
+      tp = mo.type;
       for (key in vals) {
         val = vals[key];
-        old = o[key] && (o[key] = val);
+        old = o[key];
+        o[key] = val;
         if (tp.triggers["change:" + key]) {
-          tp.triggers["change:" + key].apply(o, [old]);
+          tp.triggers["change:" + key](o, [old]);
         }
       }
       if (tp.triggers["chage"]) {
-        return tp.triggers["change"].apply(o);
+        return tp.triggers["change"](o);
       }
     },
     get: function(o, val) {
@@ -179,7 +181,8 @@
   _nb.Collection = _nb.extendModel({
     add: function(o, adding) {
       var mo, tp;
-      mo = _m(o) && (tp = mo.type);
+      mo = _m(o);
+      tp = mo.type;
       if (!("_byId" in mo)) {
         mo._byId = {};
       }
@@ -197,12 +200,13 @@
       }
       _m(adding).parent = o;
       if (tp.triggers["add"]) {
-        return tp.triggers["add"].apply(o);
+        return tp.triggers["add"](o);
       }
     },
-    remove: function(model) {
+    remove: function(o, model) {
       var mo, tp;
-      mo = _m(o) && (tp = mo.type);
+      mo = _m(o);
+      tp = mo.type;
       model = mo.getByCid(model) || mo.get(model);
       if (!model) {
         return null;
@@ -212,7 +216,7 @@
       delete model.parent;
       o.splice(_.indexOf(o, model), 1);
       if (tp.triggers["remove"]) {
-        return tp.triggers["remove"].apply(this);
+        return tp.triggers["remove"](o);
       }
     },
     getById: function(o, id) {
