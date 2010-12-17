@@ -1,6 +1,7 @@
 #I combine Model and Collection
 # maybe I will split them up
 # people.phones[0].extension
+# peopele.get("phones").get(1).get("extension")
 # people.attributes.phones.collection[0].extension
 # I am going to get rid of the nested attributes
 # the attributes are going to be right on the object!!
@@ -15,6 +16,8 @@ Neckbrace.get_id = () ->
 
 class Neckbrace.Model
   length: 0
+  _byId: {}
+  _byCid: {}
   element: "div"
   appendingEl: () ->
     return this.el
@@ -31,7 +34,7 @@ class Neckbrace.Model
     this.append()
     this.render()
   append: () ->
-    this.el = document.createElement this.element
+    if not this.el then this.el = document.createElement this.element
     if this.parent
       $(this.parent.appendingEl()).append this.el
     else

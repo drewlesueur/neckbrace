@@ -9,11 +9,6 @@
     return Neckbrace.id;
   };
   Neckbrace.Model = function() {
-    Model.prototype.length = 0;
-    Model.prototype.element = "div";
-    Model.prototype.appendingEl = function() {
-      return this.el;
-    };
     function Model(params, options) {
       _.extend(this, params);
       if (options && "parent" in options) {
@@ -21,6 +16,13 @@
       }
       this.initialize(params);
     }
+    Model.prototype.length = 0;
+    Model.prototype._byId = {};
+    Model.prototype._byCid = {};
+    Model.prototype.element = "div";
+    Model.prototype.appendingEl = function() {
+      return this.el;
+    };
     Model.prototype.triggers = {
       "change:id": function() {
         return console.log(this.id + "was triggered");
@@ -32,7 +34,9 @@
       return this.render();
     };
     Model.prototype.append = function() {
-      this.el = document.createElement(this.element);
+      if (!this.el) {
+        this.el = document.createElement(this.element);
+      }
       if (this.parent) {
         return $(this.parent.appendingEl()).append(this.el);
       } else {
