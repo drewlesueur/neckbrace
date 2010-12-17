@@ -55,10 +55,7 @@ _nb.Model =
   append: (o) ->
     mo = _m(o)
     if not (mo.el) then mo.el = document.createElement mo.element
-    if mo.parent
-      $(_t(mo.parent).appendingEl()).append mo.el
-    else
-      $(document.body).append mo.el
+    if mo.parent then $(_t(mo.parent).appendingEl()).append mo.el else $(document.body).append mo.el
   render: (o) -> #specific rendering
   toJSON: (o) -> return o #this is the beaty of using meta stuff
   ajax: $.ajax
@@ -83,10 +80,7 @@ _nb.Collection = _nb.extendModel
     if not("_byUid" of mo) then mo._byUid = {}
     #this emulates backbone collections
     o.push adding
-    if "id" of adding
-      mo._byId[adding.id] = adding
-    else if "_id" of adding
-      mo._byId[adding._id] = adding
+    if "id" of adding then mo._byId[adding.id] = adding else if "_id" of adding then mo._byId[adding._id] = adding
     if "cid" of adding then mo._byCid[adding.cid] = adding
     _m(adding).parent = o
     if tp.triggers["add"] then tp.triggers["add"].apply(o)
