@@ -16,15 +16,16 @@ _nb.mixin
     _.extend ret, params
     ret.super = model
     ret
-  extendModel: (params) -> _.extend _nb.Model, params
-  extendCollection: (params) -> _.extend _nb.Collection, params
+  extendModel: (params) -> _nb.extend _nb.Model, params
+  extendCollection: (params) -> _nb.extend _nb.Collection, params
   uniqueId: () -> _nb.currentUniqueId +=1
   metaObj: (o, extra) -> #can be array
+    o = o or {}
     cid = _nb.uniqueId()
     o.__cid = cid
     metaO = _nb.metaInfo[cid] = record: o
     _.extend metaO, extra
-    if metaO.type and metaO.type.initialize then _nb(o).initialize()
+    if metaO.type and metaO.type.initialize then metaO.type.initialize(o)
     o
   metaType: (type, o) -> _nb.metaObj o, {type: type}
   meta: (o) ->
@@ -49,9 +50,10 @@ _nb.Model =
   #triggers: {"change:id": () -> console.log this.id + "was triggered"}
   initialize: (o, params) ->
     mo = _m(o)
-    mo.cid = _.uniqueId()  #kind of redundant
+    mo.cid = _nb.uniqueId()  #kind of redundant
     mo.element = "div"
-    _.append o and _.render o
+    _t.append o
+    _t.render o
   append: (o) ->
     mo = _m(o)
     if not (mo.el) then mo.el = document.createElement mo.element

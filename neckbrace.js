@@ -9,7 +9,7 @@
     };
     _nb.methods = {};
     _nb.mixin = function(funcs) {
-      var _fn, _results;
+      var func, name, _fn, _results;
       _fn = function(name, func) {
         _nb[name] = func;
         return _results.push(_nb.methods[name] = function() {
@@ -43,16 +43,17 @@
       return ret;
     },
     extendModel: function(params) {
-      return _.extend(_nb.Model, params);
+      return _nb.extend(_nb.Model, params);
     },
     extendCollection: function(params) {
-      return _.extend(_nb.Collection, params);
+      return _nb.extend(_nb.Collection, params);
     },
     uniqueId: function() {
       return _nb.currentUniqueId += 1;
     },
     metaObj: function(o, extra) {
       var cid, metaO;
+      o = o || {};
       cid = _nb.uniqueId();
       o.__cid = cid;
       metaO = _nb.metaInfo[cid] = {
@@ -60,7 +61,7 @@
       };
       _.extend(metaO, extra);
       if (metaO.type && metaO.type.initialize) {
-        _nb(o).initialize();
+        metaO.type.initialize(o);
       }
       return o;
     },
@@ -80,11 +81,11 @@
   };
   _t = window._t = makeLikeUnderscore();
   _t.addMethods = function(methodNames) {
-    var mixins, _fn, _i, _len;
+    var mixins, name, _fn, _i, _len;
     mixins = {};
     _fn = function(name) {
       return mixins[name] = function() {
-        var args, o;
+        var args, o, _ref;
         o = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
         return (_ref = _m(o).type)[name].apply(_ref, [o].concat(__slice.call(args)));
       };
@@ -96,7 +97,7 @@
     return _t.mixin(mixins);
   };
   _t.addProps = function(propNames) {
-    var mixins, _fn, _i, _len;
+    var mixins, name, _fn, _i, _len;
     mixins = {};
     _fn = function(name) {
       return mixins[name] = function(o) {
@@ -118,9 +119,10 @@
     initialize: function(o, params) {
       var mo;
       mo = _m(o);
-      mo.cid = _.uniqueId();
+      mo.cid = _nb.uniqueId();
       mo.element = "div";
-      return _.append(o && _.render(o));
+      _t.append(o);
+      return _t.render(o);
     },
     append: function(o) {
       var mo;
