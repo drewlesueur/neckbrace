@@ -109,15 +109,7 @@ _nb.sync = (method, o, success, error) -> #copied from Backbone.sync
   if method in ['create', 'update'] then modelJSON = JSON.stringify _t(o).toJSON()
   method_map = {'create' : "POST", 'update' : 'PUT', 'delete' : "DELETE", 'read' : 'GET'}
   type = method_map[method]
-  params =
-    url: _t(o).url()
-    type: type
-    contentType: 'application/json'
-    data: modelJSON
-    dataType: 'json'
-    processData: false
-    success: success
-    error: error
+  params = {url: _t(o).url(), type: type, contentType: 'application/json', data: modelJSON, dataType: 'json', processData: false, success: success, error: error}
   if _nb.emulateJSON
     params.contentType = 'application/x-www-form-urlencoded'
     params.processData = true
