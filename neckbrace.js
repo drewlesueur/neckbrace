@@ -1,23 +1,24 @@
 (function() {
-  var Neckbrace, makeLikeUnderscore, _m, _t, _u;
+  var Neckbrace, makeLikeUnderscore, _m, _nb, _t;
   var __slice = Array.prototype.slice;
   Neckbrace = window.Neckbrace = {};
   Neckbrace.emulateJSON = true;
   Neckbrace.emulateHTTP = true;
   makeLikeUnderscore = function() {
-    var _u;
-    _u = function(o) {
-      _u.currentObject = o;
-      return _u.methods;
+    var _nb;
+    _nb = function(o) {
+      _nb.currentObject = o;
+      return _nb.methods;
     };
-    _u.mixin = function(funcs) {
+    _nb.methods = {};
+    _nb.mixin = function(funcs) {
       var _fn, _results;
       _fn = function(name, func) {
-        _u[name] = func;
-        return _results.push(_u.methods = function() {
+        _nb[name] = func;
+        return _results.push(_nb.methods[name] = function() {
           var args;
           args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-          return func.apply(null, [_u.currentObject].concat(__slice.call(args)));
+          return func.apply(null, [_nb.currentObject].concat(__slice.call(args)));
         });
       };
       _results = [];
@@ -27,63 +28,63 @@
       }
       return _results;
     };
-    return _u;
+    return _nb;
   };
-  _u = window._u = makeLikeUnderscore();
-  _u.currentUniqueId = 0;
-  _u.metaInfo = {};
-  _u.mixin({
+  _nb = window._nb = makeLikeUnderscore();
+  _nb.currentUniqueId = 0;
+  _nb.metaInfo = {};
+  _nb.mixin({
     uniqueId: function() {
-      return _u.currentUniqueId += 1;
+      return _nb.currentUniqueId += 1;
     },
     metaObj: function(o, extra) {
       var cid, metaO;
-      cid = _u.uniqueId();
+      cid = _nb.uniqueId();
       o.__cid = cid;
-      metaO = _u.metaInfo[cid] = {
+      metaO = _nb.metaInfo[cid] = {
         record: o
       };
       _.extend(metaO, extra);
       if (metaO.type && metaO.type.initialize) {
-        return _u(o).initialize();
+        _nb(o).initialize();
       }
+      return o;
     },
     metaType: function(type, o) {
-      return _u.metaObj(o, {
+      return _nb.metaObj(o, {
         type: type
       });
     },
     meta: function(o) {
       var meta;
-      meta = _u.metaInfo[o.__cid];
+      meta = _nb.metaInfo[o.__cid];
       return meta;
     },
     save: function() {
       var args, o;
       o = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-      return (_ref = _u.meta(o).type).save.apply(_ref, [o].concat(__slice.call(args)));
+      return (_ref = _nb.meta(o).type).save.apply(_ref, [o].concat(__slice.call(args)));
     }
   });
   _m = window._m = function(o) {
-    return _m(o).meta();
+    return _nb(o).meta();
   };
   _t = window._t = makeLikeUnderscore();
   _t.addMethods = function(methodNames) {
-    var mixins, _fn, _i, _len, _results;
+    var mixins, _fn, _i, _len;
     mixins = {};
     _fn = function(name) {
-      return _results.push(mixins[name] = function() {
+      return mixins[name] = function() {
         var args, o;
         o = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
         return (_ref = _m(o).type)[name].apply(_ref, [o].concat(__slice.call(args)));
-      });
+      };
     };
-    _results = [];
     for (_i = 0, _len = methodNames.length; _i < _len; _i++) {
       name = methodNames[_i];
       _fn(name);
     }
-    return _results;
+    return _t.mixin(mixins);
   };
   _t.addMethods(["save", "initialize", "append", "render", "add", "remove", "fetch", "getById", "getByCid", "toJSON", "set", "isNew", "appendingEl", "url"]);
   Neckbrace.Model = {
@@ -101,7 +102,7 @@
     append: function(o) {
       var appendingEl;
       if (!(_m(o).el)) {
-        _m(o).el = document.createElement(_u(o).meta.element);
+        _m(o).el = document.createElement(_nb(o).meta.element);
       }
       if (_m(o).parent) {
         appendingEl = _.appendingEl(_m(o).parent);

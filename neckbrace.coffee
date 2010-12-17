@@ -6,41 +6,41 @@ Neckbrace = window.Neckbrace = {};
 Neckbrace.emulateJSON = true
 Neckbrace.emulateHTTP = true
 #later instead of doing this on underscore, do it on another object
+
 makeLikeUnderscore = () ->
-  _u = (o) ->
-    _u.currentObject = o
-    return _u.methods
-  _u.methods = {}
-  _u.mixin = (funcs) ->
+  _nb = (o) ->
+    _nb.currentObject = o
+    return _nb.methods
+  _nb.methods = {}
+  _nb.mixin = (funcs) ->
     for name, func of funcs
-      _u[name] = func 
-      _u.methods[name] = (args...) ->
-        func(_u.currentObject, args...)
-  return _u
-_u = window._u = makeLikeUnderscore()
-_u.currentUniqueId = 0
-_u.metaInfo = {}
-_u.mixin
+      _nb[name] = func 
+      _nb.methods[name] = (args...) ->
+        func(_nb.currentObject, args...)
+  return _nb
+_nb = window._nb = makeLikeUnderscore()
+_nb.currentUniqueId = 0
+_nb.metaInfo = {}
+_nb.mixin
   uniqueId: () ->
-    _u.currentUniqueId +=1
+    _nb.currentUniqueId +=1
   metaObj: (o, extra) -> #can be array
-    cid = _u.uniqueId()
+    cid = _nb.uniqueId()
     o.__cid = cid
-    metaO = _u.metaInfo[cid] = 
+    metaO = _nb.metaInfo[cid] = 
       record: o
     _.extend metaO, extra
     if metaO.type and metaO.type.initialize
-      _u(o).initialize()
+      _nb(o).initialize()
     o
   metaType: (type, o) ->
-    _u.metaObj o, {type: type}
+    _nb.metaObj o, {type: type}
   meta: (o) ->
-    meta = _u.metaInfo[o.__cid]
+    meta = _nb.metaInfo[o.__cid]
     return meta
   save: (o, args...) ->
-    _u.meta(o).type.save o, args...
-_m = window._m = (o) -> _u(o).meta()
-
+    _nb.meta(o).type.save o, args...
+_m = window._m = (o) -> _nb(o).meta()
 #t is for types
 _t = window._t = makeLikeUnderscore()
 _t.addMethods = (methodNames) ->
@@ -71,7 +71,7 @@ Neckbrace.Model =
     _.append o
     _.render o
   append: (o) ->
-    if not (_m(o).el) then _m(o).el = document.createElement _u(o).meta.element
+    if not (_m(o).el) then _m(o).el = document.createElement _nb(o).meta.element
     if _m(o).parent
       appendingEl = _.appendingEl _m(o).parent
       $(appendingEl).append _m(o).el
