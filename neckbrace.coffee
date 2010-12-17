@@ -9,10 +9,7 @@ makeLikeUnderscore = () ->
       _nb.methods[name] = (args...) -> func(_nb.currentObject, args...)
   return _nb  
 _nb = window._nb = makeLikeUnderscore()
-_nb.emulateJSON = _nb.emulateHTTP = true
-_nb = window._nb = makeLikeUnderscore()
-_nb.currentUniqueId = 0
-_nb.metaInfo = {}
+_(_nb).extend emulateJSON: true, emulateHTTP: true, currentUniqueId: 0, metaInfo: {}
 _nb.mixin
   extend: (model, params) ->
     ret = _.clone model
