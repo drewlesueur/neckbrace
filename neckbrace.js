@@ -1,164 +1,213 @@
 (function() {
-  var Neckbrace, methods;
+  var Neckbrace, makeLikeUnderscore, _m, _t, _u;
+  var __slice = Array.prototype.slice;
   Neckbrace = window.Neckbrace = {};
   Neckbrace.emulateJSON = true;
   Neckbrace.emulateHTTP = true;
-  Neckbrace.id = 0;
-  Neckbrace.get_id = function() {
-    Neckbrace.id += 1;
-    return Neckbrace.id;
-  };
-  Neckbrace.Model = function() {
-    function Model(params, options) {
-      _.extend(this, params);
-      if (options && "parent" in options) {
-        this.parent = options.parent;
-      }
-      this.initialize(params);
-    }
-    Model.prototype.length = 0;
-    Model.prototype._byId = {};
-    Model.prototype._byCid = {};
-    Model.prototype.element = "div";
-    Model.prototype.appendingEl = function() {
-      return this.el;
+  makeLikeUnderscore = function() {
+    var _u;
+    _u = function(o) {
+      _u.currentObject = o;
+      return _u.methods;
     };
-    Model.prototype.triggers = {
-      "change:id": function() {
-        return console.log(this.id + "was triggered");
-      }
-    };
-    Model.prototype.initialize = function(params) {
-      this.cid = Neckbrace.get_id();
-      this.append();
-      return this.render();
-    };
-    Model.prototype.append = function() {
-      if (!this.el) {
-        this.el = document.createElement(this.element);
-      }
-      if (this.parent) {
-        return $(this.parent.appendingEl()).append(this.el);
-      } else {
-        return $(document.body).append(this.el);
-      }
-    };
-    Model.prototype.render = function() {
-      return $(this.el).attr("data-neckbrace", "true");
-    };
-    Model.prototype.toJSON = function() {
-      var key, ret, val;
-      if (this.length > 0) {
-        return this.map(function(model) {
-          return model.toJSON();
+    _u.mixin = function(funcs) {
+      var _fn, _results;
+      _fn = function(name, func) {
+        _u[name] = func;
+        return _results.push(_u.methods = function() {
+          var args;
+          args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+          return func.apply(null, [_u.currentObject].concat(__slice.call(args)));
         });
-      } else {
-        ret = {};
-        for (key in this) {
-          val = this[key];
-          if (typeof val !== "object") {
-            ret[key] = val;
-          } else if (typeof val === "object" && val.toJSON) {
-            if (val !== this) {
-              ret[key] = val.toJSON();
-            }
-          }
-        }
-        return ret;
+      };
+      _results = [];
+      for (name in funcs) {
+        func = funcs[name];
+        _fn(name, func);
       }
+      return _results;
     };
-    Model.prototype.ajax = $.ajax;
-    Model.prototype.url = function() {
+    return _u;
+  };
+  _u = window._u = makeLikeUnderscore();
+  _u.currentUniqueId = 0;
+  _u.metaInfo = {};
+  _u.mixin({
+    uniqueId: function() {
+      return _u.currentUniqueId += 1;
+    },
+    metaObj: function(o, extra) {
+      var cid, metaO;
+      cid = _u.uniqueId();
+      o.__cid = cid;
+      metaO = _u.metaInfo[cid] = {
+        record: o
+      };
+      _.extend(metaO, extra);
+      if (metaO.type && metaO.type.initialize) {
+        return _u(o).initialize();
+      }
+    },
+    metaType: function(type, o) {
+      return _u.metaObj(o, {
+        type: type
+      });
+    },
+    meta: function(o) {
+      var meta;
+      meta = _u.metaInfo[o.__cid];
+      return meta;
+    },
+    save: function() {
+      var args, o;
+      o = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
+      return (_ref = _u.meta(o).type).save.apply(_ref, [o].concat(__slice.call(args)));
+    }
+  });
+  _m = window._m = function(o) {
+    return _m(o).meta();
+  };
+  _t = window._t = makeLikeUnderscore();
+  _t.addMethods = function(methodNames) {
+    var mixins, _fn, _i, _len, _results;
+    mixins = {};
+    _fn = function(name) {
+      return _results.push(mixins[name] = function() {
+        var args, o;
+        o = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
+        return (_ref = _m(o).type)[name].apply(_ref, [o].concat(__slice.call(args)));
+      });
+    };
+    _results = [];
+    for (_i = 0, _len = methodNames.length; _i < _len; _i++) {
+      name = methodNames[_i];
+      _fn(name);
+    }
+    return _results;
+  };
+  _t.addMethods(["save", "initialize", "append", "render", "add", "remove", "fetch", "getById", "getByCid", "toJSON", "set", "isNew", "appendingEl", "url"]);
+  Neckbrace.Model = {
+    appendingEl: function(o) {
+      return _m(o).el;
+    },
+    initialize: function(o, params) {
+      _(o).meta({
+        "cid": _.uniqueId()
+      });
+      _m(o).element = "div";
+      _.append(o);
+      return _.render(o);
+    },
+    append: function(o) {
+      var appendingEl;
+      if (!(_m(o).el)) {
+        _m(o).el = document.createElement(_u(o).meta.element);
+      }
+      if (_m(o).parent) {
+        appendingEl = _.appendingEl(_m(o).parent);
+        return $(appendingEl).append(_m(o).el);
+      } else {
+        return $(document.body).append(_m(o).el);
+      }
+    },
+    render: function(o) {
+      return $(_m(o).el).attr("data-neckbrace", "true");
+    },
+    toJSON: function(o) {
+      return o;
+    },
+    ajax: $.ajax,
+    url: function(o) {
       return "/neckbraces";
-    };
-    Model.prototype.isNew = function() {
-      if (this.id || this._id) {
+    },
+    isNew: function(o) {
+      if (o.id || o._id) {
         return false;
       }
       return true;
-    };
-    Model.prototype.save = function(options) {
+    },
+    save: function(o, options) {
       var method;
-      method = this.isNew() ? "create" : "update";
+      method = _t(o).isNew() ? "create" : "update";
       return Neckbrace.sync(method, this, options.success, options.error);
-    };
-    Model.prototype.fetch = function(options) {
-      return Neckbrace.sync("read", this, options.success, options.error);
-    };
-    Model.prototype["delete"] = function(options) {
-      return Neckbrace.sync("delete", this, options.success, options.error);
-    };
-    Model.prototype.set = function(vals) {
-      var key, old, val;
+    },
+    fetch: function(o, options) {
+      return Neckbrace.sync("read", o, options.success, options.error);
+    },
+    "delete": function(o, options) {
+      return Neckbrace.sync("delete", o, options.success, options.error);
+    },
+    set: function(o, vals) {
+      var key, mo, old, val;
+      mo = _m(o);
       for (key in vals) {
         val = vals[key];
-        old = this[key];
-        this[key] = val;
-        if (this.triggers["change:" + key]) {
-          this.triggers["change:" + key].apply(this, [old]);
+        old = o[key];
+        o[key] = val;
+        if (_m(o).triggers["change:" + key]) {
+          mo.triggers["change:" + key].apply(o, [old]);
         }
       }
-      if (this.triggers["chage"]) {
-        return this.triggers["change"].apply(this);
+      if (mo.triggers["chage"]) {
+        return mo.triggers["change"].apply(o);
       }
-    };
-    Model.prototype.get = function(val) {
-      return this[val];
-    };
-    Model.prototype.add = function(x) {
-      if (!("_byId" in this)) {
-        this._byId = {};
+    },
+    get: function(o, val) {
+      return o[val];
+    }
+  };
+  Neckbrace.Collection = _.clone(Neckbrace.Model);
+  _.extend(Neckbrace.Collection, {
+    add: function(o, adding) {
+      var mo;
+      mo = _m(o);
+      if (!("_byId" in mo)) {
+        mo._byId = {};
       }
-      if (!("_byUid" in this)) {
-        this._byUid = {};
+      if (!("_byUid" in mo)) {
+        mo._byUid = {};
       }
-      this.collection.push(x);
-      this.length++;
-      if ("id" in x) {
-        this._byId[x.id] = x;
-      } else if ("_id" in x) {
-        this._byId[x._id] = x;
+      o.push(adding);
+      if ("id" in adding) {
+        mo._byId[adding.id] = adding;
+      } else if ("_id" in adding) {
+        mo._byId[adding._id] = adding;
       }
-      if ("cid" in x) {
-        this._byCid[x.cid] = x;
+      if ("cid" in adding) {
+        mo._byCid[adding.cid] = adding;
       }
-      x.parent = this;
-      if (this.triggers["add"]) {
-        return this.triggers["add"].apply(this);
+      _m(adding).parent = o;
+      if (mo.triggers["add"]) {
+        return mo.triggers["add"].apply(o);
       }
-    };
-    Model.prototype.remove = function(model) {
-      model = this.getByCid(model) || this.get(Model);
+    },
+    remove: function(model) {
+      var _mo;
+      _mo = _m(o);
+      model = mo.getByCid(model) || mo.get(model);
       if (!model) {
         return null;
       }
-      delete this._byId[model.id];
-      delete this._byCid[model.cid];
+      delete mo._byId[model.id];
+      delete mo._byCid[model.cid];
       delete model.parent;
-      this.collection.splice(this.indexOf(model), 1);
-      this.length--;
-      if (this.triggers["remove"]) {
-        return this.triggers["remove"].apply(this);
+      o.splice(_.indexOf(o, model), 1);
+      if (mo.triggers["remove"]) {
+        return mo.triggers["remove"].apply(this);
       }
-    };
-    Model.prototype.getById = function(id) {
-      return this._byId[id];
-    };
-    Model.prototype.getByCid = function(cid) {
-      return this._byCid[cid];
-    };
-    return Model;
-  }();
-  methods = ['forEach', 'each', 'map', 'reduce', 'reduceRight', 'find', 'detect', 'filter', 'select', 'reject', 'every', 'all', 'some', 'any', 'include', 'invoke', 'max', 'min', 'sortBy', 'sortedIndex', 'toArray', 'size', 'first', 'rest', 'last', 'without', 'indexOf', 'lastIndexOf', 'isEmpty'];
-  _.each(methods, function(method) {
-    return Neckbrace.Model.prototype[method] = function() {
-      return _[method].apply(_, [this.models].concat(_.toArray(arguments)));
-    };
+    },
+    getById: function(o, id) {
+      return _m(o)._byId[id];
+    },
+    getByCid: function(o, cid) {
+      return _m(o)._byCid[cid];
+    }
   });
   Neckbrace.sync = function(method, o, success, error) {
-    var method_map, modelJSON, params, type;
+    var method_map, mo, modelJSON, params, type;
+    mo = _m(o);
     if (method === 'create' || method === 'update') {
-      modelJSON = JSON.stringify(o.toJSON());
+      modelJSON = JSON.stringify(_t(o).toJSON());
     }
     method_map = {
       'create': "POST",
@@ -168,7 +217,7 @@
     };
     type = method_map[method];
     params = {
-      url: _.isFunction(o.url) ? o.url() : o.url,
+      url: _t(o).url(),
       type: type,
       contentType: 'application/json',
       data: modelJSON,

@@ -1,126 +1,149 @@
-#I combine Model and Collection
-# maybe I will split them up
 # people.phones[0].extension
 # peopele.get("phones").get(1).get("extension")
 # people.attributes.phones.collection[0].extension
-# I am going to get rid of the nested attributes
-# the attributes are going to be right on the object!!
 #listing._.save()
 Neckbrace = window.Neckbrace = {};
 Neckbrace.emulateJSON = true
 Neckbrace.emulateHTTP = true
-Neckbrace.id = 0
-Neckbrace.get_id = () ->
-  Neckbrace.id += 1
-  return Neckbrace.id
+#later instead of doing this on underscore, do it on another object
+makeLikeUnderscore = () ->
+  _u = (o) ->
+    _u.currentObject = o
+    return _u.methods
+  _u.mixin = (funcs) ->
+    for name, func of funcs
+      _u[name] = func 
+      _u.methods = (args...) ->
+        func(_u.currentObject, args...)
+  return _u
+_u = window._u = makeLikeUnderscore()
+_u.currentUniqueId = 0
+_u.metaInfo = {}
+_u.mixin
+  uniqueId: () ->
+    _u.currentUniqueId +=1
+  metaObj: (o, extra) -> #can be array
+    cid = _u.uniqueId()
+    o.__cid = cid
+    metaO = _u.metaInfo[cid] = 
+      record: o
+    _.extend metaO, extra
+    if metaO.type and metaO.type.initialize
+      _u(o).initialize()
+  metaType: (type, o) ->
+    _u.metaObj o, {type: type}
+  meta: (o) ->
+    meta = _u.metaInfo[o.__cid]
+    return meta
+  save: (o, args...) ->
+    _u.meta(o).type.save o, args...
+_m = window._m = (o) -> _m(o).meta()
 
-class Neckbrace.Model
-  length: 0
-  _byId: {}
-  _byCid: {}
-  element: "div"
-  appendingEl: () ->
-    return this.el
-  constructor: (params, options) ->
-    _.extend this, params
-    if options && "parent" of options
-      this.parent = options.parent
-    this.initialize(params)
-  triggers:
-      "change:id": () -> #"add", "change", "remove"
-        console.log this.id + "was triggered"
-  initialize: (params) ->
-    this.cid = Neckbrace.get_id()
-    this.append()
-    this.render()
-  append: () ->
-    if not this.el then this.el = document.createElement this.element
-    if this.parent
-      $(this.parent.appendingEl()).append this.el
+#t is for types
+_t = window._t = makeLikeUnderscore()
+_t.addMethods = (methodNames) ->
+  mixins = {}
+  for name in methodNames
+    mixins[name] = (o, args...) ->
+      _m(o).type[name] o, args...
+    
+_t.addMethods ["save", "initialize", "append", "render", "add", "remove", "fetch"
+"getById", "getByCid", "toJSON", "set", "isNew", "appendingEl", "url"]
+#metaMethods = ["save", "initialize", "append", "render", "add", "remove", "fetch"
+#"getById", "getByCid", "toJSON", "set", "isNew", "appendingEl", "url"]
+#mixins = {}
+#for method in metaMethods
+#  mixins[method] = (o, args...) ->
+#    _.meta(o).type[method] o, args...
+#_.mixin mixins
+#_t = (o) -> _m(o).type......
+Neckbrace.Model =
+  appendingEl: (o) ->
+    return _m(o).el
+  #triggers:
+  #    "change:id": () -> #"add", "change", "remove"
+  #      console.log this.id + "was triggered"
+  initialize: (o, params) ->
+    _(o).meta "cid" : _.uniqueId()  #kind of redundant
+    _m(o).element = "div"
+    _.append o
+    _.render o
+  append: (o) ->
+    if not (_m(o).el) then _m(o).el = document.createElement _u(o).meta.element
+    if _m(o).parent
+      appendingEl = _.appendingEl _m(o).parent
+      $(appendingEl).append _m(o).el
     else
-      $(document.body).append this.el
-  render: () ->
-    $(this.el).attr "data-neckbrace", "true"
-    #$(this.el).bind("click", () -> )
-  toJSON: () -> #todo: make sure nesting works
-    if this.length > 0
-      return this.map (model) ->
-        model.toJSON()
-    else
-      ret = {}
-      for key, val of this
-        if typeof val isnt "object"
-          ret[key] = val
-        else if typeof val is "object" and val.toJSON
-          if val isnt this
-            ret[key] = val.toJSON()
-      ret
+      $(document.body).append _m(o).el
+  render: (o) ->
+    $(_m(o).el).attr "data-neckbrace", "true"
+    #$(_m(o).el).bind("click", () -> )
+  toJSON: (o) -> #todo: make sure nesting works
+    return o
   ajax: $.ajax
-  url: () -> "/neckbraces"
-  isNew: () ->
-    if this.id or this._id #also this.id or this._id
+  url: (o) -> "/neckbraces"
+  isNew: (o) ->
+    if o.id or o._id #also this.id or this._id
       return false
     return true
-  save: (options) ->
-    method = if this.isNew() then "create" else "update"
+  save: (o, options) ->
+    method = if _t(o).isNew() then "create" else "update"
     Neckbrace.sync method, this, options.success, options.error
-  fetch: (options) ->
+  fetch: (o, options) ->
     #todo: add more options, fetch single or fetch many
-    Neckbrace.sync "read", this, options.success, options.error
-  delete: (options) ->
-    Neckbrace.sync "delete", this, options.success, options.error
-  set: (vals) ->
+    Neckbrace.sync "read", o, options.success, options.error
+  delete: (o, options) ->
+    Neckbrace.sync "delete", o, options.success, options.error
+  set: (o, vals) ->
+    mo = _m(o)
     for key, val of vals
-      old = this[key]
-      this[key] = val
-      if this.triggers["change:#{key}"]
-       this.triggers["change:#{key}"].apply(this, [old])
-    if this.triggers["chage"]
-      this.triggers["change"].apply(this)
-  get: (val) ->
-    return this[val]
-  add: (x) ->
-    if not("_byId" of this)
-      this._byId = {}
-    if not("_byUid" of this)
-      this._byUid = {}
+      old = o[key]
+      o[key] = val
+      if _m(o).triggers["change:#{key}"]
+       mo.triggers["change:#{key}"].apply(o, [old])
+    if mo.triggers["chage"]
+      mo.triggers["change"].apply(o)
+  get: (o, val) ->
+    return o[val]
+Neckbrace.Collection = _.clone Neckbrace.Model
+_.extend Neckbrace.Collection,
+  add: (o, adding) ->
+    mo = _m(o)
+    if not("_byId" of mo)
+      mo._byId = {}
+    if not("_byUid" of mo)
+      mo._byUid = {}
     #this emulates backbone collections
-    this.collection.push x
-    this.length++
-    if "id" of x
-      this._byId[x.id] = x
-    else if "_id" of x
-      this._byId[x._id] = x
-    if "cid" of x
-      this._byCid[x.cid] = x
-    x.parent = this
-    if this.triggers["add"]
-      this.triggers["add"].apply(this)
+    o.push adding
+    if "id" of adding
+      mo._byId[adding.id] = adding
+    else if "_id" of adding
+      mo._byId[adding._id] = adding
+    if "cid" of adding
+      mo._byCid[adding.cid] = adding
+    _m(adding).parent = o
+    if mo.triggers["add"]
+      mo.triggers["add"].apply(o)
   remove: (model) ->
-    model = this.getByCid(model) || this.get(Model)
+    _mo = _m(o)
+    model = mo.getByCid(model) || mo.get(model)
     if not model then return null
-    delete this._byId[model.id]
-    delete this._byCid[model.cid]
+    delete mo._byId[model.id]
+    delete mo._byCid[model.cid]
     delete model.parent #backbone says model.collection
-    this.collection.splice this.indexOf(model), 1
-    this.length--
-    if this.triggers["remove"]
-      this.triggers["remove"].apply(this)
-  getById: (id) ->
-    this._byId[id]
-  getByCid: (cid) ->
-    this._byCid[cid]
+    o.splice _.indexOf(o, model), 1
+    if mo.triggers["remove"]
+      mo.triggers["remove"].apply(this)
+  getById: (o, id) ->
+    _m(o)._byId[id]
+  getByCid: (o, cid) ->
+    _m(o)._byCid[cid]
 #giving neckbrace.type the underscore methods
-methods = ['forEach', 'each', 'map', 'reduce', 'reduceRight', 'find', 'detect',
-'filter', 'select', 'reject', 'every', 'all', 'some', 'any', 'include',
-'invoke', 'max', 'min', 'sortBy', 'sortedIndex', 'toArray', 'size',
-'first', 'rest', 'last', 'without', 'indexOf', 'lastIndexOf', 'isEmpty']
-_.each methods, (method) ->
-  Neckbrace.Model.prototype[method] = () ->
-    return _[method].apply _, [this.models].concat(_.toArray(arguments))
+
 Neckbrace.sync = (method, o, success, error) -> #copied from Backbone.sync
+  mo = _m(o)
   if method in ['create', 'update']
-    modelJSON = JSON.stringify o.toJSON()
+    modelJSON = JSON.stringify _t(o).toJSON()
   method_map =
     'create' : "POST"
     'update' : 'PUT'
@@ -128,7 +151,7 @@ Neckbrace.sync = (method, o, success, error) -> #copied from Backbone.sync
     'read' : 'GET'
   type = method_map[method]
   params =
-    url: if _.isFunction(o.url) then o.url() else o.url
+    url: _t(o).url()
     type: type
     contentType: 'application/json'
     data: modelJSON
