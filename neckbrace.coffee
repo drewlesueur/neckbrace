@@ -27,7 +27,8 @@ _nb.mixin
     _.extend metaO, extra
     if metaO.type and metaO.type.initialize then metaO.type.initialize(o)
     o
-  metaType: (type, o) -> _nb.metaObj o, {type: type}
+  reverseMeta: (cid) -> _nb.metaInfo[cid].record #meybe do this a different way
+  metaType: (type, parent, o) -> _nb.metaObj o, {type: type, parent: parent}
   meta: (o) ->
     meta = _nb.metaInfo[o.__cid]
     meta
@@ -46,18 +47,21 @@ _t.addProps = (propNames) -> #static attributes
 _t.addMethods ["save", "initialize", "append", "render", "add", "remove", "fetch", "getById", "getByCid", "toJSON", "set", "isNew", "appendingEl", "url"]
 _t.addProps ["triggers"]
 _nb.Model =
-  appendingEl: (o) -> return _m(o).el
+  appendingEl: (o) -> $ _m(o).el
   #triggers: {"change:id": () -> console.log this.id + "was triggered"}
   initialize: (o, params) ->
     mo = _m(o)
-    mo.cid = _nb.uniqueId()  #kind of redundant
+    mo.cid = o.__cid
     mo.element = "div"
     _t.append o
     _t.render o
   append: (o) ->
     mo = _m(o)
-    if not (mo.el) then mo.el = document.createElement mo.element
-    if mo.parent then $(_t(mo.parent).appendingEl()).append mo.el else $(document.body).append mo.el
+    if not(mo.el) then mo.el = $(document.createElement mo.type.element)
+    if mo.parent
+      _t(mo.parent).appendingEl().append mo.el
+    else
+      $(document.body).append mo.el
   render: (o) -> #specific rendering
   toJSON: (o) -> return o #this is the beaty of using meta stuff
   ajax: $.ajax
@@ -74,31 +78,31 @@ _nb.Model =
     for key, val of vals
       old = o[key]
       o[key] = val
-      if tp.triggers["change:#{key}"] then tp.triggers["change:#{key}"](o, [old])
-    if tp.triggers["chage"] then tp.triggers["change"](o)
+      if tp.triggers and tp.triggers["change:#{key}"] then tp.triggers["change:#{key}"](o, [old])
+    if tp.triggers and tp.triggers["chage"] then tp.triggers["change"](o)
   get: (o, val) -> return o[val]
 _nb.Collection = _nb.extendModel
   add: (o, adding) ->
     mo = _m(o)
     tp = mo.type
     if not("_byId" of mo) then mo._byId = {}
-    if not("_byUid" of mo) then mo._byUid = {}
+    if not("_byCid" of mo) then mo._byCid = {}
     #this emulates backbone collections
     o.push adding
     if "id" of adding then mo._byId[adding.id] = adding else if "_id" of adding then mo._byId[adding._id] = adding
     if "cid" of adding then mo._byCid[adding.cid] = adding
     _m(adding).parent = o
-    if tp.triggers["add"] then tp.triggers["add"](o)
-  remove: (o, model) ->
+    if tp.triggers and tp.triggers["add"] then tp.triggers["add"](o)
+  remove: (o, model) -> #pass in the model you want to remove, not the id
     mo = _m(o)
     tp = mo.type
-    model = mo.getByCid(model) || mo.get(model)
     if not model then return null
     delete mo._byId[model.id]
     delete mo._byCid[model.cid]
-    delete model.parent #backbone says model.collection
+    delete _m(model).parent #backbone says model.collection #todo:fix this
     o.splice _.indexOf(o, model), 1
-    if tp.triggers["remove"] then tp.triggers["remove"](o)
+    if tp.triggers and tp.triggers["remove"] then tp.triggers["remove"](o)
+    model
   getById: (o, id) -> _m(o)._byId[id]
   getByCid: (o, cid) -> _m(o)._byCid[cid]
 _nb.sync = (method, o, success, error) -> #copied from Backbone.sync

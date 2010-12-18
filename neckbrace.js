@@ -65,9 +65,13 @@
       }
       return o;
     },
-    metaType: function(type, o) {
+    reverseMeta: function(cid) {
+      return _nb.metaInfo[cid].record;
+    },
+    metaType: function(type, parent, o) {
       return _nb.metaObj(o, {
-        type: type
+        type: type,
+        parent: parent
       });
     },
     meta: function(o) {
@@ -114,12 +118,12 @@
   _t.addProps(["triggers"]);
   _nb.Model = {
     appendingEl: function(o) {
-      return _m(o).el;
+      return $(_m(o).el);
     },
     initialize: function(o, params) {
       var mo;
       mo = _m(o);
-      mo.cid = _nb.uniqueId();
+      mo.cid = o.__cid;
       mo.element = "div";
       _t.append(o);
       return _t.render(o);
@@ -128,10 +132,10 @@
       var mo;
       mo = _m(o);
       if (!mo.el) {
-        mo.el = document.createElement(mo.element);
+        mo.el = $(document.createElement(mo.type.element));
       }
       if (mo.parent) {
-        return $(_t(mo.parent).appendingEl()).append(mo.el);
+        return _t(mo.parent).appendingEl().append(mo.el);
       } else {
         return $(document.body).append(mo.el);
       }
@@ -166,11 +170,11 @@
         val = vals[key];
         old = o[key];
         o[key] = val;
-        if (tp.triggers["change:" + key]) {
+        if (tp.triggers && tp.triggers["change:" + key]) {
           tp.triggers["change:" + key](o, [old]);
         }
       }
-      if (tp.triggers["chage"]) {
+      if (tp.triggers && tp.triggers["chage"]) {
         return tp.triggers["change"](o);
       }
     },
@@ -186,8 +190,8 @@
       if (!("_byId" in mo)) {
         mo._byId = {};
       }
-      if (!("_byUid" in mo)) {
-        mo._byUid = {};
+      if (!("_byCid" in mo)) {
+        mo._byCid = {};
       }
       o.push(adding);
       if ("id" in adding) {
@@ -199,7 +203,7 @@
         mo._byCid[adding.cid] = adding;
       }
       _m(adding).parent = o;
-      if (tp.triggers["add"]) {
+      if (tp.triggers && tp.triggers["add"]) {
         return tp.triggers["add"](o);
       }
     },
@@ -207,17 +211,17 @@
       var mo, tp;
       mo = _m(o);
       tp = mo.type;
-      model = mo.getByCid(model) || mo.get(model);
       if (!model) {
         return null;
       }
       delete mo._byId[model.id];
       delete mo._byCid[model.cid];
-      delete model.parent;
+      delete _m(model).parent;
       o.splice(_.indexOf(o, model), 1);
-      if (tp.triggers["remove"]) {
-        return tp.triggers["remove"](o);
+      if (tp.triggers && tp.triggers["remove"]) {
+        tp.triggers["remove"](o);
       }
+      return model;
     },
     getById: function(o, id) {
       return _m(o)._byId[id];
