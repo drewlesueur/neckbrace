@@ -92,8 +92,9 @@ _nb.Collection = _nb.extendModel
     if "id" of adding then mo._byId[adding.id] = adding else if "_id" of adding then mo._byId[adding._id] = adding
     if "cid" of adding then mo._byCid[adding.cid] = adding
     _m(adding).parent = o
-    if tp.triggers and tp.triggers["add"] then tp.triggers["add"](o)
+    if tp.triggers and tp.triggers["add"] then tp.triggers["add"](o, adding)
   remove: (o, model) -> #pass in the model you want to remove, not the id
+    #todo: fix this code to make sure the model is actually in the array
     mo = _m(o)
     tp = mo.type
     if not model then return null
@@ -101,7 +102,7 @@ _nb.Collection = _nb.extendModel
     delete mo._byCid[model.cid]
     delete _m(model).parent #backbone says model.collection #todo:fix this
     o.splice _.indexOf(o, model), 1
-    if tp.triggers and tp.triggers["remove"] then tp.triggers["remove"](o)
+    if tp.triggers and tp.triggers["remove"] then tp.triggers["remove"](o, model)
     model
   getById: (o, id) -> _m(o)._byId[id]
   getByCid: (o, cid) -> _m(o)._byCid[cid]

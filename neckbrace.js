@@ -204,7 +204,7 @@
       }
       _m(adding).parent = o;
       if (tp.triggers && tp.triggers["add"]) {
-        return tp.triggers["add"](o);
+        return tp.triggers["add"](o, adding);
       }
     },
     remove: function(o, model) {
@@ -219,7 +219,7 @@
       delete _m(model).parent;
       o.splice(_.indexOf(o, model), 1);
       if (tp.triggers && tp.triggers["remove"]) {
-        tp.triggers["remove"](o);
+        tp.triggers["remove"](o, model);
       }
       return model;
     },
