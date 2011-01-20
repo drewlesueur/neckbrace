@@ -23,3 +23,6 @@ Still working out kinks
     people.attributes.phones.collection[0].extension
     listing._.save()
     _t(record).save()
+
+
+update: moving to index.coffee
