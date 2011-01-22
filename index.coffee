@@ -109,7 +109,7 @@ _.mixin
     return like_
 
 
-_p = _.makeLikeUnderscore()
+window._p = _p = _.makeLikeUnderscore()
 _p.metaInfo = {}
 _p.mixin
   class: (obj) ->
@@ -125,9 +125,10 @@ _p.mixin
     _p.addProps props
     obj
   new: (type, o, extra) ->
+    extra = extra || {}
     if type then extra.type = type
     o = o or {}
-    cid = _.uniquieId()
+    cid = _.uniqueId()
     o.__cid = cid
     metaO = _p.metaInfo[cid] = record: o
     _.extend metaO, extra
@@ -145,7 +146,7 @@ _p.addProps = (propNames) -> #static attributes
   for name in propNames
     mixins[name] = (o) -> _p.meta(o).type[name]
   _p.mixin mixins
-
+window._m = _m = _p.meta
 _p.Collection = _p.class
   name: "Collection"
   get: (o, id, whichId="__cid") ->
