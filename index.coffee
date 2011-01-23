@@ -139,7 +139,7 @@ _p.mixin
 _p.addMethods = (methodNames) ->
   mixins = {}
   for name in methodNames
-    mixins[name] = (o, args...) -> _p.meta(o).type[name] o, args...
+    do(name) -> mixins[name] = (o, args...) -> _p.meta(o).type[name] o, args...
   _p.mixin mixins
 _p.addProps = (propNames) -> #static attributes
   mixins = {}

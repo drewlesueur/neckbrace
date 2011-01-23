@@ -166,15 +166,18 @@
     }
   });
   _p.addMethods = function(methodNames) {
-    var mixins, name, _i, _len;
+    var mixins, name, _fn, _i, _len;
     mixins = {};
-    for (_i = 0, _len = methodNames.length; _i < _len; _i++) {
-      name = methodNames[_i];
-      mixins[name] = function() {
+    _fn = function(name) {
+      return mixins[name] = function() {
         var args, o, _ref;
         o = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
         return (_ref = _p.meta(o).type)[name].apply(_ref, [o].concat(__slice.call(args)));
       };
+    };
+    for (_i = 0, _len = methodNames.length; _i < _len; _i++) {
+      name = methodNames[_i];
+      _fn(name);
     }
     return _p.mixin(mixins);
   };
