@@ -1,5 +1,5 @@
 (function() {
-  var _m, _p;
+  var Arr, _m, _p;
   var __slice = Array.prototype.slice;
   _.mixin({
     s: function(val, start, end) {
@@ -202,162 +202,25 @@
       return _p.getById;
     }
   });
-  return;
-  _nb.Model = {
-    appendingEl: function(o) {
-      return $(_m(o).el);
+  Arr = window.Arr = _p["class"]({
+    initialize: function(o) {
+      return _m(o)._byCid = {};
     },
-    initialize: function(o, params) {
-      var mo;
-      mo = _m(o);
-      mo.cid = o.__cid;
-      mo.element = "div";
-      _t.append(o);
-      return _t.render(o);
+    add: function(o, item) {
+      o.push(item);
+      return _m(o)._byCid[item.__cid] = item;
     },
-    append: function(o) {
-      var mo;
-      mo = _m(o);
-      if (!mo.el) {
-        mo.el = $(document.createElement(mo.type.element));
+    remove: function(o, item) {
+      var key, member, _len, _results;
+      if (!(item.__cid in o._byCid)) {
+        return false;
       }
-      if (mo.parent) {
-        return _t(mo.parent).appendingEl().append(mo.el);
-      } else {
-        return $(document.body).append(mo.el);
+      _results = [];
+      for (key = 0, _len = o.length; key < _len; key++) {
+        member = o[key];
+        _results.push(member.__cid === item.__cid ? o.splice(key, 1) : void 0);
       }
-    },
-    render: function(o) {},
-    toJSON: function(o) {
-      return o;
-    },
-    ajax: $.ajax,
-    url: function(o) {
-      return "/neckbraces";
-    },
-    isNew: function(o) {
-      return o.id || o._id;
-    },
-    save: function(o, options) {
-      var method;
-      method = _t(o).isNew() ? "create" : "update";
-      return _nb.sync(method, this, options.success, options.error);
-    },
-    fetch: function(o, options) {
-      return _nb.sync("read", o, options.success, options.error);
-    },
-    "delete": function(o, options) {
-      return _nb.sync("delete", o, options.success, options.error);
-    },
-    set: function(o, vals) {
-      var key, mo, old, tp, val;
-      mo = _m(o);
-      tp = mo.type;
-      for (key in vals) {
-        val = vals[key];
-        old = o[key];
-        o[key] = val;
-        if (tp.triggers && tp.triggers["change:" + key]) {
-          tp.triggers["change:" + key](o, [old]);
-        }
-      }
-      if (tp.triggers && tp.triggers["chage"]) {
-        return tp.triggers["change"](o);
-      }
-    },
-    get: function(o, val) {
-      return o[val];
-    }
-  };
-  _nb.Collection = _nb.extendModel({
-    add: function(o, adding) {
-      var mo, tp;
-      mo = _m(o);
-      tp = mo.type;
-      if (!("_byId" in mo)) {
-        mo._byId = {};
-      }
-      if (!("_byCid" in mo)) {
-        mo._byCid = {};
-      }
-      o.push(adding);
-      if ("id" in adding) {
-        mo._byId[adding.id] = adding;
-      } else if ("_id" in adding) {
-        mo._byId[adding._id] = adding;
-      }
-      if ("cid" in adding) {
-        mo._byCid[adding.cid] = adding;
-      }
-      _m(adding).parent = o;
-      if (tp.triggers && tp.triggers["add"]) {
-        return tp.triggers["add"](o, adding);
-      }
-    },
-    remove: function(o, model) {
-      var mo, tp;
-      mo = _m(o);
-      tp = mo.type;
-      if (!model) {
-        return null;
-      }
-      delete mo._byId[model.id];
-      delete mo._byCid[model.cid];
-      delete _m(model).parent;
-      o.splice(_.indexOf(o, model), 1);
-      if (tp.triggers && tp.triggers["remove"]) {
-        tp.triggers["remove"](o, model);
-      }
-      return model;
-    },
-    getById: function(o, id) {
-      return _m(o)._byId[id];
-    },
-    getByCid: function(o, cid) {
-      return _m(o)._byCid[cid];
+      return _results;
     }
   });
-  _nb.sync = function(method, o, success, error) {
-    var method_map, mo, modelJSON, params, type;
-    mo = _m(o);
-    if (method === 'create' || method === 'update') {
-      modelJSON = JSON.stringify(_t(o).toJSON());
-    }
-    method_map = {
-      'create': "POST",
-      'update': 'PUT',
-      'delete': "DELETE",
-      'read': 'GET'
-    };
-    type = method_map[method];
-    params = {
-      url: _t(o).url(),
-      type: type,
-      contentType: 'application/json',
-      data: modelJSON,
-      dataType: 'json',
-      processData: false,
-      success: success,
-      error: error
-    };
-    if (_nb.emulateJSON) {
-      params.contentType = 'application/x-www-form-urlencoded';
-      params.processData = true;
-      params.data = modelJSON ? {
-        model: modelJSON
-      } : {};
-    }
-    if (_nb.emulateHTTP) {
-      if (type === 'PUT' || type === 'DELETE') {
-        if (_nb.emulateJSON) {
-          params.data._method = type;
-        }
-        params.type = 'POST';
-        params.beforeSend = function(xhr) {
-          return xhr.setRequestHeader("X-HTTP-Method-Override", type);
-        };
-      }
-    }
-    return o.ajax(params);
-  };
 }).call(this);

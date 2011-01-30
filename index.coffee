@@ -152,84 +152,16 @@ _p.Collection = _p.class
   get: (o, id, whichId="__cid") ->
     return _p.getById
 
-#this is a work in progress         
-return
-  
-_nb.Model =
-  appendingEl: (o) -> $ _m(o).el
-  #triggers: {"change:id": () -> console.log this.id + "was triggered"}
-  initialize: (o, params) ->
-    mo = _m(o)
-    mo.cid = o.__cid
-    mo.element = "div"
-    _t.append o
-    _t.render o
-  append: (o) ->
-    mo = _m(o)
-    if not(mo.el) then mo.el = $(document.createElement mo.type.element)
-    if mo.parent
-      _t(mo.parent).appendingEl().append mo.el
-    else
-      $(document.body).append mo.el
-  render: (o) -> #specific rendering
-  toJSON: (o) -> return o #this is the beaty of using meta stuff
-  ajax: $.ajax
-  url: (o) -> "/neckbraces"
-  isNew: (o) -> return (o.id or o._id)
-  save: (o, options) ->
-    method = if _t(o).isNew() then "create" else "update"
-    _nb.sync method, this, options.success, options.error
-  fetch: (o, options) -> _nb.sync "read", o, options.success, options.error #todo add more hre
-  delete: (o, options) -> _nb.sync "delete", o, options.success, options.error
-  set: (o, vals) ->
-    mo = _m(o)
-    tp = mo.type
-    for key, val of vals
-      old = o[key]
-      o[key] = val
-      if tp.triggers and tp.triggers["change:#{key}"] then tp.triggers["change:#{key}"](o, [old])
-    if tp.triggers and tp.triggers["chage"] then tp.triggers["change"](o)
-  get: (o, val) -> return o[val]
-_nb.Collection = _nb.extendModel
-  add: (o, adding) ->
-    mo = _m(o)
-    tp = mo.type
-    if not("_byId" of mo) then mo._byId = {}
-    if not("_byCid" of mo) then mo._byCid = {}
-    #this emulates backbone collections
-    o.push adding
-    if "id" of adding then mo._byId[adding.id] = adding else if "_id" of adding then mo._byId[adding._id] = adding
-    if "cid" of adding then mo._byCid[adding.cid] = adding
-    _m(adding).parent = o
-    if tp.triggers and tp.triggers["add"] then tp.triggers["add"](o, adding)
-  remove: (o, model) -> #pass in the model you want to remove, not the id
-    #todo: fix this code to make sure the model is actually in the array
-    mo = _m(o)
-    tp = mo.type
-    if not model then return null
-    delete mo._byId[model.id]
-    delete mo._byCid[model.cid]
-    delete _m(model).parent #backbone says model.collection #todo:fix this
-    o.splice _.indexOf(o, model), 1
-    if tp.triggers and tp.triggers["remove"] then tp.triggers["remove"](o, model)
-    model
-  getById: (o, id) -> _m(o)._byId[id]
-  getByCid: (o, cid) -> _m(o)._byCid[cid]
-_nb.sync = (method, o, success, error) -> #copied from Backbone.sync
-  mo = _m(o)
-  if method in ['create', 'update'] then modelJSON = JSON.stringify _t(o).toJSON()
-  method_map = {'create' : "POST", 'update' : 'PUT', 'delete' : "DELETE", 'read' : 'GET'}
-  type = method_map[method]
-  params = {url: _t(o).url(), type: type, contentType: 'application/json', data: modelJSON, dataType: 'json', processData: false, success: success, error: error}
-  if _nb.emulateJSON
-    params.contentType = 'application/x-www-form-urlencoded'
-    params.processData = true
-    params.data = if modelJSON then {model: modelJSON} else {}
-  if _nb.emulateHTTP
-    if type is 'PUT' or type is 'DELETE'
-      if _nb.emulateJSON then params.data._method = type
-      params.type = 'POST'
-      params.beforeSend  = (xhr) -> xhr.setRequestHeader "X-HTTP-Method-Override", type
-  o.ajax params
-
-
+#simple array with adding and removing
+Arr = window.Arr = _p.class
+  initialize: (o) ->
+    _m(o)._byCid = {}
+  add: (o, item) ->
+    o.push item
+    _m(o)._byCid[item.__cid] = item
+  remove: (o, item) ->
+    if not (item.__cid of o._byCid)
+      return false
+    for member, key in o
+      if member.__cid == item.__cid
+        o.splice key, 1 
