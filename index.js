@@ -1,7 +1,48 @@
 (function() {
-  var _m, _p, _v;
+  var library, makeLikeUnderscore, _e, _m, _p;
   var __slice = Array.prototype.slice;
-  _.mixin({
+  makeLikeUnderscore = function() {
+    var like_;
+    like_ = function(o) {
+      like_.currentObject = o;
+      return like_.methods;
+    };
+    like_.methods = {
+      chain: function() {
+        like_.chained = true;
+        return like_.methods;
+      },
+      value: function() {
+        like_.chained = false;
+        return like_.currentObject;
+      }
+    };
+    like_.mixin = function(funcs) {
+      var func, name, _results;
+      _results = [];
+      for (name in funcs) {
+        func = funcs[name];
+        _results.push((function(name, func) {
+          like_[name] = func;
+          return like_.methods[name] = function() {
+            var args, ret;
+            args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+            ret = func.apply(null, [like_.currentObject].concat(__slice.call(args)));
+            if (like_.chained) {
+              like_.currentObject = ret;
+              return like_.methods;
+            } else {
+              return ret;
+            }
+          };
+        })(name, func));
+      }
+      return _results;
+    };
+    return like_;
+  };
+  _e = window._e = makeLikeUnderscore();
+  _e.mixin({
     s: function(val, start, end) {
       var need_to_join, ret;
       need_to_join = false;
@@ -30,7 +71,7 @@
       }
     },
     startsWith: function(str, with_what) {
-      return _.s(str, 0, with_what.lenght === with_what);
+      return _e.s(str, 0, with_what.lenght === with_what);
     },
     rnd: function(low, high) {
       return Math.floor(Math.random() * (high - low + 1)) + low;
@@ -48,10 +89,10 @@
       if (endpos === -1) {
         return str;
       }
-      return _.s(str, 0, pos + start.length) + between + _.s(str, endpos);
+      return _e.s(str, 0, pos + start.length) + between + _e.s(str, endpos);
     }
   });
-  _.mixin({
+  _e.mixin({
     do_these: function(to_dos, callback) {
       var make_jobs_done, return_values;
       return_values = _.isArray(to_dos) ? [] : {};
@@ -78,51 +119,12 @@
       });
     }
   });
-  _.mixin({
-    makeLikeUnderscore: function() {
-      var like_;
-      like_ = function(o) {
-        like_.currentObject = o;
-        return like_.methods;
-      };
-      like_.methods = {
-        chain: function() {
-          like_.chained = true;
-          return like_.methods;
-        },
-        value: function() {
-          like_.chained = false;
-          return like_.currentObject;
-        }
-      };
-      like_.mixin = function(funcs) {
-        var func, name, _results;
-        _results = [];
-        for (name in funcs) {
-          func = funcs[name];
-          _results.push((function(name, func) {
-            like_[name] = func;
-            return like_.methods[name] = function() {
-              var args, ret;
-              args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-              ret = func.apply(null, [like_.currentObject].concat(__slice.call(args)));
-              if (like_.chained) {
-                like_.currentObject = ret;
-                return like_.methods;
-              } else {
-                return ret;
-              }
-            };
-          })(name, func));
-        }
-        return _results;
-      };
-      return like_;
-    }
+  _e.mixin({
+    makeLikeUnderscore: makeLikeUnderscore
   });
-  window._p = _p = _.makeLikeUnderscore();
-  _p.metaInfo = {};
-  _p.mixin({
+  _p = window._p(_e._p = _e.makeLikeUnderscore());
+  _e.metaInfo = {};
+  _e.mixin({
     "class": function(obj) {
       var funcs, key, props, val;
       funcs = [];
@@ -138,22 +140,18 @@
           props.push(key);
         }
       }
-      _p.addMethods(funcs);
-      _p.addProps(props);
+      _e.addPolymorphicMethods(funcs);
+      _e.addPolymorphicProps(props);
       return obj;
     },
     "new": function(type, o, extra) {
-      var cid, metaO;
+      var metaO;
       extra = extra || {};
       if (type) {
         extra.type = type;
       }
       o = o || {};
-      cid = _.uniqueId();
-      o.__cid = cid;
-      metaO = _p.metaInfo[cid] = {
-        record: o
-      };
+      metaO = _e.meta(o);
       _.extend(metaO, extra);
       if (metaO.type && metaO.type.initialize) {
         metaO.type.initialize(o);
@@ -161,20 +159,29 @@
       return o;
     },
     reverseMeta: function(cid) {
-      return _nb.metaInfo[cid].record;
+      return _e.metaInfo[cid].record;
     },
     meta: function(o) {
-      return _p.metaInfo[o.__cid];
+      var cid, metaO;
+      metaO = _p.metaInfo[o.__cid];
+      if (metaO) {
+        return metaO;
+      }
+      cid = _.uniqueId();
+      o.__cid = cid;
+      return _e.metaInfo[cid] = {
+        record: o
+      };
     }
   });
-  _p.addMethods = function(methodNames) {
+  _e.addPolymorphicMethods = function(methodNames) {
     var mixins, name, _fn, _i, _len;
     mixins = {};
     _fn = function(name) {
       return mixins[name] = function() {
         var args, o, _ref;
         o = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-        return (_ref = _p.meta(o).type)[name].apply(_ref, [o].concat(__slice.call(args)));
+        return (_ref = _e.meta(o).type)[name].apply(_ref, [o].concat(__slice.call(args)));
       };
     };
     for (_i = 0, _len = methodNames.length; _i < _len; _i++) {
@@ -183,7 +190,7 @@
     }
     return _p.mixin(mixins);
   };
-  _p.addProps = function(propNames) {
+  _e.addPolymorphicProps = function(propNames) {
     var mixins, name, _i, _len;
     mixins = {};
     for (_i = 0, _len = propNames.length; _i < _len; _i++) {
@@ -194,66 +201,140 @@
     }
     return _p.mixin(mixins);
   };
-  window._m = _m = _p.meta;
-  _p.__Arr = _p["class"]({
+  window._m = _m = _e.meta;
+  _e.mixin({
+    bind: function(o, event, callback) {
+      var calls, list, mo;
+      mo = _m(o);
+      calls = mo._callbacks || (mo._callbacks = {});
+      list = mo._callbacks[event] || (mo._callbacks[event] = []);
+      return list.push(callback);
+    },
+    unbind: function(o, event, callback) {
+      var calls, func, index, list, mo, _len;
+      mo = _m(o);
+      if (!event) {
+        mo._callbacks = {};
+      } else if ((calls = mo._callbacks)) {
+        if (!callback) {
+          calls[event] = [];
+        } else {
+          list = calls[ev];
+          if (!list) {
+            return o;
+          }
+          for (index = 0, _len = list.length; index < _len; index++) {
+            func = list[index];
+            if (callback === func) {
+              list.splice(index, 1);
+              break;
+            }
+          }
+        }
+      }
+      return o;
+    },
+    trigger: function() {
+      var allList, calls, event, func, index, list, mo, o, restOfArgs, _len, _len2, _results;
+      o = arguments[0], event = arguments[1], restOfArgs = 3 <= arguments.length ? __slice.call(arguments, 2) : [];
+      mo = _m(o);
+      calls = mo._callbacks;
+      if (!calls) {
+        return o;
+      }
+      list = calls[event];
+      if (list) {
+        for (index = 0, _len = list.length; index < _len; index++) {
+          func = list[index];
+          func.apply(null, [o].concat(__slice.call(restOfArgs)));
+        }
+      }
+      allList = calls["all"];
+      if (allList) {
+        _results = [];
+        for (index = 0, _len2 = allList.length; index < _len2; index++) {
+          func = allList[index];
+          _results.push(func.apply(null, [o, event].concat(__slice.call(restOfArgs))));
+        }
+        return _results;
+      }
+    },
     initialize: function(o) {
       return _m(o)._byCid = {};
     },
     add: function(o, item) {
+      var mo;
       o.push(item);
-      return _m(o)._byCid[item.__cid] = item;
+      mo = _m(o);
+      if (!mo._byCid) {
+        mo._byCid = {};
+      }
+      mo._byCid[item.__cid] = item;
+      _e(o).trigger("add", item, o);
+      return o;
     },
     remove: function(o, item) {
-      var key, member, _len, _results;
-      console.log("got to remove for some reason", o, item);
-      if (!(item.__cid in o._byCid)) {
+      var key, member, mo, _len, _results;
+      mo = _m(o);
+      if (!mo._byCid) {
+        return;
+      }
+      if (!(item.__cid in mo._byCid)) {
         return false;
       }
       _results = [];
       for (key = 0, _len = o.length; key < _len; key++) {
         member = o[key];
-        _results.push(member.__cid === item.__cid ? o.splice(key, 1) : void 0);
+        _results.push(member.__cid === item.__cid ? (o.splice(key, 1), _e(o).trigger("remove", item, o)) : void 0);
       }
       return _results;
     }
   });
-  window._v = _v = {};
-  _v.draggable = function(el, options) {
-    return $(el).bind("mousedown", function(e) {
-      var mousemove, mouseup, obj, parent_offset_left, parent_offset_top, start_offset_left, start_offset_top;
-      obj = this;
-      e.preventDefautl();
-      parent_offset_left = $(obj).parent().offset().left;
-      parent_offset_top = $(obj).parent().offset().top;
-      start_offset_left = e.pageX - $(obj).offset().left;
-      start_offset_top = e.pageY - $(obj).offset().top;
-      if (_.isFunction(options.start)) {
-        options.start(obj);
-      }
-      mousemove = function(e) {
-        var new_left, new_top;
-        new_left = e.pageX - parent_offset_left - start_offset_left;
-        new_top = e.pageY - parent_offset_top - start_offset_top;
-        if (_.isFunction(options.xFilter)) {
-          new_left = options.xFilter(x, obj);
+  library = jQuery || Zepto;
+  (function(library) {
+    var $;
+    $ = library;
+    return $.fn.dragsimple = function(options) {
+      var el;
+      el = this;
+      console.log(el);
+      $(el).bind("mousedown", function(e) {
+        var mousemove, mouseup, obj, parent_offset_left, parent_offset_top, start_offset_left, start_offset_top;
+        obj = this;
+        e.preventDefault();
+        parent_offset_left = $(obj).parent().offset().left;
+        parent_offset_top = $(obj).parent().offset().top;
+        start_offset_left = e.pageX - $(obj).offset().left;
+        start_offset_top = e.pageY - $(obj).offset().top;
+        if (_.isFunction(options.start)) {
+          options.start(obj);
         }
-        if (_.isFunction(options.yFilter)) {
-          new_top = options.yFilter(obj);
-        }
-        $(obj).css("left", new_left + "px");
-        $(obj).css("top", new_top + "px");
-        if (_.isFunction(options.drag)) {
-          return options.drag(obj);
-        }
-      };
-      mouseup = function(e) {
-        $(document.body).unbind("mousemove", mousemove);
-        if (_.isFunction(options.stop)) {
-          return options.stop(obj);
-        }
-      };
-      $(document.body).bind("mousemove", mousemove);
-      return $(document.body).bind("mouseup", mouseup);
-    });
-  };
+        mousemove = function(e) {
+          var new_left, new_top;
+          new_left = e.pageX - parent_offset_left - start_offset_left;
+          new_top = e.pageY - parent_offset_top - start_offset_top;
+          if (_.isFunction(options.xFilter)) {
+            new_left = options.xFilter(x, obj);
+          }
+          if (_.isFunction(options.yFilter)) {
+            new_top = options.yFilter(obj);
+          }
+          $(obj).css("left", new_left + "px");
+          $(obj).css("top", new_top + "px");
+          if (_.isFunction(options.drag)) {
+            return options.drag(obj);
+          }
+        };
+        mouseup = function(e) {
+          $(document.body).unbind("mousemove", mousemove);
+          if (_.isFunction(options.stop)) {
+            return options.stop(obj);
+          }
+        };
+        $(document.body).bind("mousemove", mousemove);
+        return $(document.body).bind("mouseup", mouseup);
+      });
+      return el;
+    };
+  })(library);
 }).call(this);

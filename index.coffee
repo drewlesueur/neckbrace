@@ -1,4 +1,28 @@
-_.mixin
+makeLikeUnderscore = () ->
+  like_ = (o) ->
+    like_.currentObject = o
+    return like_.methods
+  like_.methods =
+    chain: () ->
+      like_.chained = true
+      like_.methods
+    value: () ->
+      like_.chained = false
+      like_.currentObject
+  like_.mixin = (funcs) ->
+    for name, func of funcs
+      do (name, func) ->
+        like_[name] = func
+        like_.methods[name] = (args...) ->
+          ret = func(like_.currentObject, args...)
+          if like_.chained
+            like_.currentObject = ret
+            like_.methods
+          else
+            ret
+  return like_
+_e = window._e = makeLikeUnderscore()
+_e.mixin
   s: (val, start, end) ->
     need_to_join = false
     ret = []
@@ -25,7 +49,7 @@ _.mixin
       ret
 
   startsWith: (str, with_what) ->
-    _.s str, 0, with_what.lenght == with_what
+    _e.s str, 0, with_what.lenght == with_what
   
   rnd: (low, high) -> Math.floor(Math.random() * (high-low+1)) + low
 
@@ -37,7 +61,7 @@ _.mixin
     if pos is -1 then return str
     endpos = str.indexOf end, pos + start.length
     if endpos is -1 then return str
-    return _.s(str, 0, pos + start.length) + between + _.s(str, endpos)
+    return _e.s(str, 0, pos + start.length) + between + _e.s(str, endpos)
 
 # Drew LeSueur @drewlesueur
 # An abstraction for calling multiple asynchronous
@@ -46,7 +70,7 @@ _.mixin
 # when they are all done.
 # requires underscore.js
 
-_.mixin # underscore.js mixin
+_e.mixin # underscore.js mixin
   do_these: (to_dos, callback) ->
     return_values = if _.isArray(to_dos) then [] else {}
     make_jobs_done = (id) ->
@@ -73,46 +97,21 @@ _.mixin # underscore.js mixin
 #     access.getVideos (videos) ->
 #       done videos
 #           
-# _.do_these [get_pics, get_videos], (ret) ->
+# _e.do_these [get_pics, get_videos], (ret) ->
 #   console.log "pics are", ret[0]
 #   console.log "videos are", ret[1]
 #
 ##  OR 
 #
-# _.do_these {pics: get_pics, videos: get_videos}, (ret) ->
+# _e.do_these {pics: get_pics, videos: get_videos}, (ret) ->
 #   console.log "pics are ", ret.pics
 #   console.log "videos are", ret.videos
 #
 
-_.mixin
-  makeLikeUnderscore: () ->
-    like_ = (o) ->
-      like_.currentObject = o
-      return like_.methods
-    like_.methods =
-      chain: () ->
-        like_.chained = true
-        like_.methods
-      value: () ->
-        like_.chained = false
-        like_.currentObject
-    like_.mixin = (funcs) ->
-      for name, func of funcs
-        do (name, func) ->
-          like_[name] = func
-          like_.methods[name] = (args...) ->
-            ret = func(like_.currentObject, args...)
-            if like_.chained
-              like_.currentObject = ret
-              like_.methods
-            else
-              ret
-    return like_
-
-
-window._p = _p = _.makeLikeUnderscore()
-_p.metaInfo = {}
-_p.mixin
+_e.mixin makeLikeUnderscore: makeLikeUnderscore
+_p = window._p _e._p = _e.makeLikeUnderscore()
+_e.metaInfo = {}
+_e.mixin
   class: (obj) ->
     funcs = []
     props = []
@@ -122,81 +121,131 @@ _p.mixin
         funcs.push key
       else 
         props.push key
-    _p.addMethods funcs
-    _p.addProps props
+    _e.addPolymorphicMethods funcs
+    _e.addPolymorphicProps props
     obj
   new: (type, o, extra) ->
     extra = extra || {}
     if type then extra.type = type
     o = o or {}
-    cid = _.uniqueId()
-    o.__cid = cid
-    metaO = _p.metaInfo[cid] = record: o
+    metaO = _e.meta(o)
     _.extend metaO, extra
     if metaO.type and metaO.type.initialize then metaO.type.initialize o
     o
-  reverseMeta: (cid) -> _nb.metaInfo[cid].record #meybe do this a different way
-  meta: (o) -> _p.metaInfo[o.__cid]
-_p.addMethods = (methodNames) ->
+  reverseMeta: (cid) -> _e.metaInfo[cid].record #meybe do this a different way
+  meta: (o) -> 
+    metaO =  _p.metaInfo[o.__cid]
+    if metaO then return metaO
+    cid = _.uniqueId()
+    o.__cid = cid
+    return _e.metaInfo[cid] = record: o
+    
+_e.addPolymorphicMethods = (methodNames) ->
   mixins = {}
   for name in methodNames
-    do(name) -> mixins[name] = (o, args...) -> _p.meta(o).type[name] o, args...
+    do(name) -> mixins[name] = (o, args...) -> _e.meta(o).type[name] o, args...
   _p.mixin mixins
-_p.addProps = (propNames) -> #static attributes
+_e.addPolymorphicProps = (propNames) -> #static attributes
   mixins = {}
   for name in propNames
     mixins[name] = (o) -> _p.meta(o).type[name]
   _p.mixin mixins
-window._m = _m = _p.meta
+window._m = _m = _e.meta
+
+
+_e.mixin
+  bind: (o, event, callback) ->
+    mo = _m(o)
+    calls = mo._callbacks or (mo._callbacks = {})
+    list = mo._callbacks[event] or  (mo._callbacks[event] = [])
+    list.push callback
+
+  unbind: (o, event, callback) ->
+    mo = _m(o)
+    if not event
+      mo._callbacks = {}
+    else if (calls = mo._callbacks) 
+      if not callback
+        calls[event] = []
+      else
+        list = calls[ev]
+        if not list then return o
+        for func, index in list
+          if callback == func
+            list.splice index, 1 
+            break
+    return o
+
+  trigger: (o, event, restOfArgs...) ->
+    mo = _m(o)
+    calls = mo._callbacks
+    if not calls then return o
+    list = calls[event]
+    if list
+      for func, index in list
+        func o, restOfArgs...
+    allList = calls["all"]
+    if allList
+      for func, index in allList
+        func o, event, restOfArgs...
+
 
 #simple array with adding and removing
-_p.__Arr = _p.class
+  
   initialize: (o) ->
     _m(o)._byCid = {}
   add: (o, item) ->
     o.push item
-    _m(o)._byCid[item.__cid] = item
+    mo = _m(o)
+    if not mo._byCid then mo._byCid = {}
+    mo._byCid[item.__cid] = item
+    _e(o).trigger "add", item, o  
+    return o
   remove: (o, item) ->
-    console.log "got to remove for some reason", o, item
-    if not (item.__cid of o._byCid)
+    mo = _m(o)
+    if not mo._byCid then return
+    if not (item.__cid of mo._byCid)
       return false
     for member, key in o
       if member.__cid == item.__cid
         o.splice key, 1 
+        _e(o).trigger "remove", item, o
+        
 
-#_v for view
-window._v = _v = {}
+#jQuery or zepto extensions.
+library = jQuery || Zepto
+do (library) ->
+  $ = library
+  $.fn.dragsimple = (options) ->
+    el = this 
+    console.log el
+    $(el).bind "mousedown", (e) ->
+      obj = this
+      e.preventDefault()
+      parent_offset_left = $(obj).parent().offset().left
+      parent_offset_top = $(obj).parent().offset().top
+      start_offset_left = e.pageX - $(obj).offset().left
+      start_offset_top = e.pageY - $(obj).offset().top 
+      if _.isFunction options.start
+        options.start obj
 
-_v.draggable = (el, options) ->
-  $(el).bind "mousedown", (e) ->
-    obj = this
-    e.preventDefautl()
-    parent_offset_left = $(obj).parent().offset().left
-    parent_offset_top = $(obj).parent().offset().top
-    start_offset_left = e.pageX - $(obj).offset().left
-    start_offset_top = e.pageY - $(obj).offset().top 
-    if _.isFunction options.start
-      options.start obj
+      mousemove = (e) ->
+        new_left = e.pageX - parent_offset_left - start_offset_left
+        new_top = e.pageY - parent_offset_top - start_offset_top
+        if _.isFunction options.xFilter
+          new_left = options.xFilter x, obj
+        if _.isFunction options.yFilter
+          new_top = options.yFilter obj
+        $(obj).css("left", (new_left) + "px")
+        $(obj).css("top", (new_top) + "px")
+        if _.isFunction options.drag
+          options.drag obj
 
-    mousemove = (e) ->
-      new_left = e.pageX - parent_offset_left - start_offset_left
-      new_top = e.pageY - parent_offset_top - start_offset_top
-      if _.isFunction options.xFilter
-        new_left = options.xFilter x, obj
-      if _.isFunction options.yFilter
-        new_top = options.yFilter obj
-      $(obj).css("left", (new_left) + "px")
-      $(obj).css("top", (new_top) + "px")
-      if _.isFunction options.drag
-        options.drag obj
-
-    mouseup = (e) ->
-      $(document.body).unbind "mousemove", mousemove
-      if _.isFunction options.stop
-        options.stop obj
-    
-    $(document.body).bind "mousemove", mousemove
-    $(document.body).bind "mouseup", mouseup
-
-
-
+      mouseup = (e) ->
+        $(document.body).unbind "mousemove", mousemove
+        if _.isFunction options.stop
+          options.stop obj
+      
+      $(document.body).bind "mousemove", mousemove
+      $(document.body).bind "mouseup", mouseup
+    return el
