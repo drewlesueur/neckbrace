@@ -135,7 +135,7 @@ _e.mixin
     o
   reverseMeta: (cid) -> _e.metaInfo[cid].record #meybe do this a different way
   meta: (o) -> 
-    metaO =  _p.metaInfo[o.__cid]
+    metaO =  _e.metaInfo[o.__cid]
     if metaO then return metaO
     cid = _.uniqueId()
     o.__cid = cid
@@ -149,7 +149,7 @@ _e.addPolymorphicMethods = (methodNames) ->
 _e.addPolymorphicProps = (propNames) -> #static attributes
   mixins = {}
   for name in propNames
-    mixins[name] = (o) -> _p.meta(o).type[name]
+    mixins[name] = (o) -> _e.meta(o).type[name]
   _p.mixin mixins
 window._m = _m = _e.meta
 

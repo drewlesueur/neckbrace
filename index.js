@@ -164,7 +164,7 @@
     },
     meta: function(o) {
       var cid, metaO;
-      metaO = _p.metaInfo[o.__cid];
+      metaO = _e.metaInfo[o.__cid];
       if (metaO) {
         return metaO;
       }
@@ -197,7 +197,7 @@
     for (_i = 0, _len = propNames.length; _i < _len; _i++) {
       name = propNames[_i];
       mixins[name] = function(o) {
-        return _p.meta(o).type[name];
+        return _e.meta(o).type[name];
       };
     }
     return _p.mixin(mixins);
