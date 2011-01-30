@@ -122,7 +122,8 @@
   _e.mixin({
     makeLikeUnderscore: makeLikeUnderscore
   });
-  _p = window._p(_e._p = _e.makeLikeUnderscore());
+  _p = _e._p = window._p = makeLikeUnderscore();
+  _e._p = _p;
   _e.metaInfo = {};
   _e.mixin({
     "class": function(obj) {
