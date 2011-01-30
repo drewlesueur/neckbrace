@@ -128,7 +128,7 @@
       for (key in obj) {
         val = obj[key];
         if (key in _p) {
-          return obj;
+          continue;
         }
         if (_.isFunction(val)) {
           funcs.push(key);

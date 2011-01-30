@@ -116,7 +116,7 @@ _p.mixin
     funcs = []
     props = []
     for key, val of obj
-      if key of _p then return obj
+      if key of _p then continue
       if _.isFunction val
         funcs.push key
       else 
