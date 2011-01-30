@@ -1,5 +1,5 @@
 (function() {
-  var Arr, _m, _p;
+  var _m, _p, _v;
   var __slice = Array.prototype.slice;
   _.mixin({
     s: function(val, start, end) {
@@ -100,18 +100,20 @@
         _results = [];
         for (name in funcs) {
           func = funcs[name];
-          like_[name] = func;
-          _results.push(like_.methods[name] = function() {
-            var args, ret;
-            args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-            ret = func.apply(null, [like_.currentObject].concat(__slice.call(args)));
-            if (like_.chained) {
-              like_.currentObject = ret;
-              return like_.methods;
-            } else {
-              return ret;
-            }
-          });
+          _results.push((function(name, func) {
+            like_[name] = func;
+            return like_.methods[name] = function() {
+              var args, ret;
+              args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+              ret = func.apply(null, [like_.currentObject].concat(__slice.call(args)));
+              if (like_.chained) {
+                like_.currentObject = ret;
+                return like_.methods;
+              } else {
+                return ret;
+              }
+            };
+          })(name, func));
         }
         return _results;
       };
@@ -193,7 +195,7 @@
     return _p.mixin(mixins);
   };
   window._m = _m = _p.meta;
-  Arr = window.Arr = _p["class"]({
+  _p.__Arr = _p["class"]({
     initialize: function(o) {
       return _m(o)._byCid = {};
     },
@@ -203,6 +205,7 @@
     },
     remove: function(o, item) {
       var key, member, _len, _results;
+      console.log("got to remove for some reason", o, item);
       if (!(item.__cid in o._byCid)) {
         return false;
       }
@@ -214,4 +217,43 @@
       return _results;
     }
   });
+  window._v = _v = {};
+  _v.draggable = function(el, options) {
+    return $(el).bind("mousedown", function(e) {
+      var mousemove, mouseup, obj, parent_offset_left, parent_offset_top, start_offset_left, start_offset_top;
+      obj = this;
+      e.preventDefautl();
+      parent_offset_left = $(obj).parent().offset().left;
+      parent_offset_top = $(obj).parent().offset().top;
+      start_offset_left = e.pageX - $(obj).offset().left;
+      start_offset_top = e.pageY - $(obj).offset().top;
+      if (_.isFunction(options.start)) {
+        options.start(obj);
+      }
+      mousemove = function(e) {
+        var new_left, new_top;
+        new_left = e.pageX - parent_offset_left - start_offset_left;
+        new_top = e.pageY - parent_offset_top - start_offset_top;
+        if (_.isFunction(options.xFilter)) {
+          new_left = options.xFilter(x, obj);
+        }
+        if (_.isFunction(options.yFilter)) {
+          new_top = options.yFilter(obj);
+        }
+        $(obj).css("left", new_left + "px");
+        $(obj).css("top", new_top + "px");
+        if (_.isFunction(options.drag)) {
+          return options.drag(obj);
+        }
+      };
+      mouseup = function(e) {
+        $(document.body).unbind("mousemove", mousemove);
+        if (_.isFunction(options.stop)) {
+          return options.stop(obj);
+        }
+      };
+      $(document.body).bind("mousemove", mousemove);
+      return $(document.body).bind("mouseup", mouseup);
+    });
+  };
 }).call(this);

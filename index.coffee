@@ -98,14 +98,15 @@ _.mixin
         like_.currentObject
     like_.mixin = (funcs) ->
       for name, func of funcs
-        like_[name] = func
-        like_.methods[name] = (args...) ->
-          ret = func(like_.currentObject, args...)
-          if like_.chained
-            like_.currentObject = ret
-            like_.methods
-          else
-            ret
+        do (name, func) ->
+          like_[name] = func
+          like_.methods[name] = (args...) ->
+            ret = func(like_.currentObject, args...)
+            if like_.chained
+              like_.currentObject = ret
+              like_.methods
+            else
+              ret
     return like_
 
 
@@ -149,15 +150,53 @@ _p.addProps = (propNames) -> #static attributes
 window._m = _m = _p.meta
 
 #simple array with adding and removing
-Arr = window.Arr = _p.class
+_p.__Arr = _p.class
   initialize: (o) ->
     _m(o)._byCid = {}
   add: (o, item) ->
     o.push item
     _m(o)._byCid[item.__cid] = item
   remove: (o, item) ->
+    console.log "got to remove for some reason", o, item
     if not (item.__cid of o._byCid)
       return false
     for member, key in o
       if member.__cid == item.__cid
         o.splice key, 1 
+
+#_v for view
+window._v = _v = {}
+
+_v.draggable = (el, options) ->
+  $(el).bind "mousedown", (e) ->
+    obj = this
+    e.preventDefautl()
+    parent_offset_left = $(obj).parent().offset().left
+    parent_offset_top = $(obj).parent().offset().top
+    start_offset_left = e.pageX - $(obj).offset().left
+    start_offset_top = e.pageY - $(obj).offset().top 
+    if _.isFunction options.start
+      options.start obj
+
+    mousemove = (e) ->
+      new_left = e.pageX - parent_offset_left - start_offset_left
+      new_top = e.pageY - parent_offset_top - start_offset_top
+      if _.isFunction options.xFilter
+        new_left = options.xFilter x, obj
+      if _.isFunction options.yFilter
+        new_top = options.yFilter obj
+      $(obj).css("left", (new_left) + "px")
+      $(obj).css("top", (new_top) + "px")
+      if _.isFunction options.drag
+        options.drag obj
+
+    mouseup = (e) ->
+      $(document.body).unbind "mousemove", mousemove
+      if _.isFunction options.stop
+        options.stop obj
+    
+    $(document.body).bind "mousemove", mousemove
+    $(document.body).bind "mouseup", mouseup
+
+
+
