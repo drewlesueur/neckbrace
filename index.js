@@ -193,15 +193,6 @@
     return _p.mixin(mixins);
   };
   window._m = _m = _p.meta;
-  _p.Collection = _p["class"]({
-    name: "Collection",
-    get: function(o, id, whichId) {
-      if (whichId == null) {
-        whichId = "__cid";
-      }
-      return _p.getById;
-    }
-  });
   Arr = window.Arr = _p["class"]({
     initialize: function(o) {
       return _m(o)._byCid = {};

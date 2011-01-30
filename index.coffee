@@ -147,10 +147,6 @@ _p.addProps = (propNames) -> #static attributes
     mixins[name] = (o) -> _p.meta(o).type[name]
   _p.mixin mixins
 window._m = _m = _p.meta
-_p.Collection = _p.class
-  name: "Collection"
-  get: (o, id, whichId="__cid") ->
-    return _p.getById
 
 #simple array with adding and removing
 Arr = window.Arr = _p.class
