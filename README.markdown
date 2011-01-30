@@ -11,10 +11,11 @@ It gives some methods for helping you create JavaScript web applications.
 * The main difference is Neckbrace uses real javascript objects and arrays, not nested ones
 * Functions are called based off the __cid of the object or array.
 * neckbrace models have meta elements like `_m(obj).el`
-* call polymorphic functions like `_t(obj).myfunction()`
+* call polymorphic functions like `_p(obj).myfunction()`
 this will look up the type of the meta object of `obj` (like `_m(ojb).type.myFunction o`)
 * Copied this way of doing oop from Underscore.js
-
+* There is an object called `_e` which is an object like `_` from underscore.js
+a bunch of handy methods are stored there.
 Still working out kinks
 
 ##Thoughts.
